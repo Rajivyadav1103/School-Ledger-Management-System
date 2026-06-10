@@ -1,0 +1,194 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\views\\student\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\views\\student\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\controllers\\studentcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\controllers\\studentcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\services\\studentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\services\\studentservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\models\\student.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\models\\student.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\models\\studentledger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\models\\studentledger.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\dao\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\dao\\applicationdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\viewmodels\\studentvm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\viewmodels\\studentvm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|c:\\users\\dell\\onedrive - padmashree international college\\desktop\\.net class 1\\schoolledgersystem\\schoolledgersystem\\viewmodels\\paymentvm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1BF42CF5-558E-4F46-B2FA-1B4F74E430B0}|SchoolledgerSystem\\SchoolledgerSystem.csproj|solutionrelative:schoolledgersystem\\viewmodels\\paymentvm.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 189,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Index.cshtml",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Views\\Student\\Index.cshtml",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\Views\\Student\\Index.cshtml",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Views\\Student\\Index.cshtml",
+              "RelativeToolTip": "SchoolledgerSystem\\Views\\Student\\Index.cshtml",
+              "ViewState": "AgIAAHgAAAAAAAAAAAAAwIsAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-06-09T18:06:36.264Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Program.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\Program.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Program.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:14:04.754Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "StudentLedger.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Models\\StudentLedger.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\Models\\StudentLedger.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Models\\StudentLedger.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\Models\\StudentLedger.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:17:30.419Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Student.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Models\\Student.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\Models\\Student.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Models\\Student.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\Models\\Student.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:20:28.207Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\appsettings.json",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\appsettings.json",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\appsettings.json*",
+              "RelativeToolTip": "SchoolledgerSystem\\appsettings.json*",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAHAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-06-09T17:07:54.9Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "StudentService.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Services\\StudentService.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\Services\\StudentService.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Services\\StudentService.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\Services\\StudentService.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAgwCEAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:27:07.44Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "StudentController.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Controllers\\StudentController.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\Controllers\\StudentController.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\Controllers\\StudentController.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\Controllers\\StudentController.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAxwBIAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:06:39.064Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "ApplicationDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\DAO\\ApplicationDbContext.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\DAO\\ApplicationDbContext.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\DAO\\ApplicationDbContext.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\DAO\\ApplicationDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:09:45.476Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "StudentVM.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\ViewModels\\StudentVM.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\ViewModels\\StudentVM.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\ViewModels\\StudentVM.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\ViewModels\\StudentVM.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:18:24.791Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "PaymentVM.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\ViewModels\\PaymentVM.cs",
+              "RelativeDocumentMoniker": "SchoolledgerSystem\\ViewModels\\PaymentVM.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - padmashree International College\\Desktop\\.net class 1\\SchoolledgerSystem\\SchoolledgerSystem\\ViewModels\\PaymentVM.cs",
+              "RelativeToolTip": "SchoolledgerSystem\\ViewModels\\PaymentVM.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-06-09T17:25:55.668Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
