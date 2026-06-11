@@ -12,5 +12,15 @@ namespace SchoolledgerSystem.DAO
         }
 
         public DbSet<Student> Students { get; set; }
+
+        public DbSet<FeeType> FeeTypes { get; set; }
+
+        public DbSet<ClassType> ClassTypes { get; set; }
+
+        public DbSet<FeeStructure> FeeStructures { get; set; }
+
+        public DbSet<FeePayment> FeePayments { get; set; }
+
+
     }
 }

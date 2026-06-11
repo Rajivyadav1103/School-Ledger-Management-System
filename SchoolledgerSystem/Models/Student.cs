@@ -1,44 +1,27 @@
-﻿namespace SchoolledgerSystem.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SchoolledgerSystem.Models
 {
     public class Student
     {
-        // 🆔 Primary Info
         public int StudentID { get; set; }
-        public string RollNo { get; set; }
+        public string StudentName { get; set; } = string.Empty;
+        public string? RollNo { get; set; }
+        public string? Gender { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public DateTime AdmissionDate { get; set; } = DateTime.Now;
+        public int ClassTypeID { get; set; }
 
+        [ForeignKey("ClassTypeID")]
+        public ClassType ClassType { get; set; }
 
-        // 👤 Personal Info
-        public string FullName { get; set; }
-        public string Gender { get; set; }
-        public DateTime DateOfBirth { get; set; }
-        public string BloodGroup { get; set; }
-
-
-        // 👨‍👩‍👦 Parent / Guardian Info
-        public string FatherName { get; set; }
-        public string MotherName { get; set; }
-
-
-        // 📚 Academic Info
-        public string Class { get; set; }
-        public string Section { get; set; }
-
-
-        // 📞 Contact Info
-        public string Phone { get; set; }
-        public string EmergencyContact { get; set; }
-        public string Email { get; set; }
-
-
-        // 🏠 Address Info
-        public string Address { get; set; }
-
-
-        // 📅 System Info
-        public DateTime AdmissionDate { get; set; }
-
-
-        // ⭐ Status
+        public string? FatherName { get; set; }
+        public string? MotherName { get; set; }
+        public string? ContactNo { get; set; }
+        public string? Address { get; set; }
         public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
+        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime? UpdatedDate { get; set; }
     }
 }

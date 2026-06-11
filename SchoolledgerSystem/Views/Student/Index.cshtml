@@ -1,78 +1,376 @@
-﻿<link rel="stylesheet" href="~/css/student.css" />
+﻿@{
+    ViewData["Title"] = "Student Management";
+}
 
-<h2 class="title">Student Management System</h2>
+<div class="container mt-3">
+    <h2>Student Management</h2>
+    <hr />
 
-<div class="container">
+    <button class="btn btn-success mb-3 btnAdd">
+        <i class="fas fa-plus"></i> Add New Student
+    </button>
 
-    <!-- SEARCH -->
-    <div class="card">
-
-        <div class="row">
-
-            <div class="col">
-                <label>Roll No</label>
-                <input type="text" class="txtSearchRoll form-control" />
-            </div>
-
-            <div class="col">
-                <label>Name</label>
-                <input type="text" class="txtSearchName form-control" />
-            </div>
-
-            <div class="col buttons">
-                <button class="btnSearch">Search</button>
-                <button class="btnCreate">Add Student</button>
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- TABLE -->
-    <div class="card mt-3">
-
-        <table class="tblStudent">
-
-            <thead>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
                 <tr>
                     <th>SN</th>
                     <th>Roll No</th>
-                    <th>Name</th>
+                    <th>Student Name</th>
                     <th>Class</th>
-                    <th>Phone</th>
+                    <th>Gender</th>
+                    <th>Father's Name</th>
+                    <th>Contact No</th>
+                    <th>Status</th>
                     <th>Action</th>
                 </tr>
             </thead>
-
-            <tbody class="main-data"></tbody>
-
+            <tbody id="tblData">
+                <tr>
+                    <td colspan="9" class="text-center">Loading...</td>
+                </tr>
+            </tbody>
         </table>
-
     </div>
-
 </div>
 
-<!-- SIMPLE MODAL -->
-<div id="mdlStudent" class="modal">
+<!-- Modal -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Student Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
 
-    <div class="modal-content">
+            <div class="modal-body">
+                <input type="hidden" id="hdnId" value="0" />
 
-        <h3>Student Form</h3>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Student Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtStudentName" placeholder="Enter student name" />
+                    </div>
 
-        <input type="text" class="txtRollNo" placeholder="Roll No" />
-        <input type="text" class="txtFullName" placeholder="Full Name" />
-        <input type="text" class="txtClass" placeholder="Class" />
-        <input type="text" class="txtPhone" placeholder="Phone" />
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Roll No</label>
+                        <input type="text" class="form-control" id="txtRollNo" placeholder="Enter roll number (optional)" />
+                    </div>
+                </div>
 
-        <input type="hidden" class="hdnId" value="0" />
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ddlClassType">
+                            <option value="">-- Select Class --</option>
+                        </select>
+                    </div>
 
-        <div class="modal-actions">
-            <button class="btnSave">Save</button>
-            <button id="btnCancel">Cancel</button>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Gender</label>
+                        <select class="form-select" id="ddlGender">
+                            <option value="">-- Select Gender --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Date of Birth</label>
+                        <input type="date" class="form-control" id="txtDateOfBirth" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Admission Date</label>
+                        <input type="date" class="form-control" id="txtAdmissionDate" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Father's Name</label>
+                        <input type="text" class="form-control" id="txtFatherName" placeholder="Enter father's name" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Mother's Name</label>
+                        <input type="text" class="form-control" id="txtMotherName" placeholder="Enter mother's name" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Contact No <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtContactNo" maxlength="10" placeholder="10 digit mobile number" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Address</label>
+                        <textarea class="form-control" id="txtAddress" rows="2" placeholder="Enter address"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="chkActive" checked>
+                    <label class="form-check-label fw-bold">Is Active</label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary btnSave">Save</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
-
     </div>
-
 </div>
 
-<script src="~/js/student.js"></script>
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    <script>
+        let modal;
+
+        $(document).ready(function () {
+            modal = new bootstrap.Modal(document.getElementById('studentModal'));
+            loadData();
+            loadClassTypes();
+
+            // Set default admission date
+            let today = new Date().toISOString().split('T')[0];
+            $('#txtAdmissionDate').val(today);
+
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "timeOut": "3000"
+            };
+        });
+
+        function loadData() {
+            $.ajax({
+                url: '/Student/GetAll',
+                type: 'GET',
+                success: function (res) {
+                    let html = '';
+
+                    if (res && res.length > 0) {
+                        $.each(res, function (i, item) {
+                            let statusBadge = item.isActive
+                                ? '<span class="badge bg-success">Active</span>'
+                                : '<span class="badge bg-danger">Inactive</span>';
+
+                            html += `
+                                <tr>
+                                    <td>${i + 1}</td>
+                                    <td>${item.rollNo || '-'}</td>
+                                    <td>${escapeHtml(item.studentName)}</td>
+                                    <td>${escapeHtml(item.classTypeName)}</td>
+                                    <td>${item.gender || '-'}</td>
+                                    <td>${escapeHtml(item.fatherName) || '-'}</td>
+                                    <td>${item.contactNo || '-'}</td>
+                                    <td>${statusBadge}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning btnEdit me-1" data-id="${item.studentID}">Edit</button>
+                                        <button class="btn btn-sm btn-danger btnDelete" data-id="${item.studentID}">Delete</button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html = '<tr><td colspan="9" class="text-center">No records found</td></tr>';
+                    }
+
+                    $('#tblData').html(html);
+                },
+                error: function(xhr, status, error) {
+                    $('#tblData').html('<tr><td colspan="9" class="text-center text-danger">Error loading data</td></tr>');
+                    toastr.error('Failed to load data: ' + error);
+                }
+            });
+        }
+
+        function loadClassTypes() {
+            $.ajax({
+                url: '/Student/GetClassTypes',
+                type: 'GET',
+                success: function (res) {
+                    let options = '<option value="">-- Select Class --</option>';
+                    $.each(res, function (i, item) {
+                        options += `<option value="${item.classTypeID}">${escapeHtml(item.typeName)}</option>`;
+                    });
+                    $('#ddlClassType').html(options);
+                },
+                error: function() {
+                    toastr.error('Failed to load class types');
+                }
+            });
+        }
+
+        // Add Button
+        $('.btnAdd').click(function () {
+            clearForm();
+            modal.show();
+        });
+
+        // Save Button
+        $('.btnSave').click(function () {
+            let studentName = $('#txtStudentName').val().trim();
+            let classTypeId = $('#ddlClassType').val();
+            let contactNo = $('#txtContactNo').val().trim();
+
+            if (!studentName) {
+                toastr.warning('Please enter student name');
+                $('#txtStudentName').focus();
+                return;
+            }
+
+            if (!classTypeId) {
+                toastr.warning('Please select a class');
+                $('#ddlClassType').focus();
+                return;
+            }
+
+            if (!contactNo) {
+                toastr.warning('Please enter contact number');
+                $('#txtContactNo').focus();
+                return;
+            }
+
+            if (!/^\d{10}$/.test(contactNo)) {
+                toastr.warning('Contact number must be 10 digits');
+                $('#txtContactNo').focus();
+                return;
+            }
+
+            let data = {
+                StudentID: parseInt($('#hdnId').val()) || 0,
+                StudentName: studentName,
+                RollNo: $('#txtRollNo').val().trim() || null,
+                Gender: $('#ddlGender').val() || null,
+                DateOfBirth: $('#txtDateOfBirth').val() || null,
+                AdmissionDate: $('#txtAdmissionDate').val(),
+                ClassTypeID: parseInt(classTypeId),
+                FatherName: $('#txtFatherName').val().trim() || null,
+                MotherName: $('#txtMotherName').val().trim() || null,
+                ContactNo: contactNo,
+                Address: $('#txtAddress').val().trim() || null,
+                IsActive: $('#chkActive').is(':checked')
+            };
+
+            $.ajax({
+                url: '/Student/Save',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function (res) {
+                    if (res.success) {
+                        toastr.success(res.message);
+                        modal.hide();
+                        loadData();
+                        clearForm();
+                    } else {
+                        toastr.error(res.message);
+                    }
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Error saving data';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMsg = xhr.responseJSON.message;
+                    }
+                    toastr.error(errorMsg);
+                }
+            });
+        });
+
+        // Edit Button
+        $(document).on('click', '.btnEdit', function () {
+            let id = $(this).data('id');
+
+            $.ajax({
+                url: '/Student/GetById',
+                type: 'GET',
+                data: { id: id },
+                success: function (res) {
+                    if (res && res.studentID) {
+                        $('#hdnId').val(res.studentID);
+                        $('#txtStudentName').val(res.studentName);
+                        $('#txtRollNo').val(res.rollNo || '');
+                        $('#ddlClassType').val(res.classTypeID);
+                        $('#ddlGender').val(res.gender || '');
+                        $('#txtDateOfBirth').val(res.dateOfBirth ? res.dateOfBirth.split('T')[0] : '');
+                        $('#txtAdmissionDate').val(res.admissionDate ? res.admissionDate.split('T')[0] : new Date().toISOString().split('T')[0]);
+                        $('#txtFatherName').val(res.fatherName || '');
+                        $('#txtMotherName').val(res.motherName || '');
+                        $('#txtContactNo').val(res.contactNo || '');
+                        $('#txtAddress').val(res.address || '');
+                        $('#chkActive').prop('checked', res.isActive);
+                        modal.show();
+                    } else {
+                        toastr.error('Record not found');
+                    }
+                },
+                error: function() {
+                    toastr.error('Failed to load record');
+                }
+            });
+        });
+
+        // Delete Button
+        $(document).on('click', '.btnDelete', function () {
+            let id = $(this).data('id');
+
+            if (confirm('Are you sure you want to delete this record?')) {
+                $.ajax({
+                    url: '/Student/Delete',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(id),
+                    success: function (res) {
+                        if (res.success) {
+                            toastr.success(res.message);
+                            loadData();
+                        } else {
+                            toastr.error(res.message);
+                        }
+                    },
+                    error: function() {
+                        toastr.error('Error deleting record');
+                    }
+                });
+            }
+        });
+
+        function clearForm() {
+            $('#hdnId').val(0);
+            $('#txtStudentName').val('');
+            $('#txtRollNo').val('');
+            $('#ddlClassType').val('');
+            $('#ddlGender').val('');
+            $('#txtDateOfBirth').val('');
+            $('#txtAdmissionDate').val(new Date().toISOString().split('T')[0]);
+            $('#txtFatherName').val('');
+            $('#txtMotherName').val('');
+            $('#txtContactNo').val('');
+            $('#txtAddress').val('');
+            $('#chkActive').prop('checked', true);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+    </script>
+}

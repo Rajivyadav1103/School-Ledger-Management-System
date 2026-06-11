@@ -16,7 +16,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 //-------------End here----------------
 // ✅ REGISTER SERVICE (THIS FIXES ERROR)
-builder.Services.AddScoped<StudentService>();
+
 
 
 var app = builder.Build();

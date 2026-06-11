@@ -1,0 +1,315 @@
+﻿@{
+    ViewData["Title"] = "Class Type Management";
+}
+
+<div class="container mt-3">
+    <h2>Class Type Management</h2>
+    <hr />
+
+    <button class="btn btn-success mb-3 btnAdd">
+        <i class="fas fa-plus"></i> Add Class Type
+    </button>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>SN</th>
+                    <th>Type Name</th>
+                    <th>Description</th>
+                    <th>Order No</th>
+                    <th>Status</th>
+                    <th>Created Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tblData">
+                <tr>
+                    <td colspan="7" class="text-center">Loading...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal fade" id="classTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Class Type Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="hdnId" value="0" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Type Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="txtTypeName" placeholder="Enter type name (e.g., Primary, Secondary)" maxlength="100" />
+                    <small class="text-muted">Examples: Primary, Secondary, Higher Secondary</small>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Description</label>
+                    <textarea class="form-control" id="txtDescription" rows="3" placeholder="Enter description (optional)"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Order Number <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="txtOrderNo" placeholder="Enter order number" min="0" step="1" />
+                    <small class="text-muted">Determines the display order (lower numbers appear first)</small>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="chkActive" checked>
+                    <label class="form-check-label fw-bold" for="chkActive">Is Active</label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-primary btnSave">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include required libraries -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+<style>
+    .table tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+        .table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+    .order-badge {
+        font-size: 12px;
+        padding: 3px 8px;
+        border-radius: 12px;
+        background-color: #e9ecef;
+        color: #495057;
+    }
+</style>
+
+<script>
+    let modal;
+
+    $(document).ready(function () {
+        modal = new bootstrap.Modal(document.getElementById('classTypeModal'));
+        loadData();
+
+        toastr.options = {
+            "closeButton": true,
+            "progressBar": true,
+            "positionClass": "toast-top-right",
+            "timeOut": "3000"
+        };
+    });
+
+    function loadData() {
+        $.ajax({
+            url: '/ClassType/GetAll',
+            type: 'GET',
+            success: function (res) {
+                let html = '';
+
+                if (res && res.length > 0) {
+                    $.each(res, function (i, item) {
+                        let statusBadge = item.isActive
+                            ? '<span class="badge bg-success">Active</span>'
+                            : '<span class="badge bg-danger">Inactive</span>';
+
+                        let createdDate = item.createdDate ? new Date(item.createdDate).toLocaleDateString() : '-';
+
+                        html += `
+                            <tr>
+                                <td>${i + 1}</td>
+                                <td><strong>${escapeHtml(item.typeName)}</strong></td>
+                                <td>${escapeHtml(item.description) || '-'}</td>
+                                <td><span class="order-badge">${item.orderNo}</span></td>
+                                <td>${statusBadge}</td>
+                                <td>${createdDate}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning btnEdit me-1" data-id="${item.classTypeID}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-sm btn-danger btnDelete" data-id="${item.classTypeID}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </td>
+                            </tr>`;
+                    });
+                } else {
+                    html = '<tr><td colspan="7" class="text-center">No records found</td></tr>';
+                }
+
+                $('#tblData').html(html);
+            },
+            error: function (xhr, status, error) {
+                $('#tblData').html('<tr><td colspan="7" class="text-center text-danger">Error loading data</td></tr>');
+                toastr.error('Failed to load data');
+                console.error(error);
+            }
+        });
+    }
+
+    // ADD BUTTON
+    $('.btnAdd').click(function () {
+        clearForm();
+        modal.show();
+    });
+
+    // SAVE BUTTON
+    $('.btnSave').click(function () {
+        // Validation
+        let typeName = $('#txtTypeName').val().trim();
+        let orderNo = $('#txtOrderNo').val().trim();
+
+        if (!typeName) {
+            toastr.warning('Please enter type name');
+            $('#txtTypeName').focus();
+            return;
+        }
+
+        if (!orderNo) {
+            toastr.warning('Please enter order number');
+            $('#txtOrderNo').focus();
+            return;
+        }
+
+        if (parseInt(orderNo) < 0) {
+            toastr.warning('Order number cannot be negative');
+            return;
+        }
+
+        let data = {
+            ClassTypeID: parseInt($('#hdnId').val()) || 0,
+            TypeName: typeName,
+            Description: $('#txtDescription').val().trim() || null,
+            OrderNo: parseInt(orderNo),
+            IsActive: $('#chkActive').is(':checked')
+        };
+
+        $.ajax({
+            url: '/ClassType/Save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function (res) {
+                if (res.success) {
+                    toastr.success(res.message);
+                    modal.hide();
+                    loadData();
+                    clearForm();
+                } else {
+                    toastr.error(res.message);
+                }
+            },
+            error: function (xhr, status, error) {
+                console.log('Error details:', xhr.responseText);
+                let errorMsg = 'An error occurred while saving';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                toastr.error(errorMsg);
+            }
+        });
+    });
+
+    // EDIT BUTTON
+    $(document).on('click', '.btnEdit', function () {
+        let id = $(this).data('id');
+
+        $.ajax({
+            url: '/ClassType/GetById',
+            type: 'GET',
+            data: { id: id },
+            success: function (res) {
+                if (res && res.classTypeID) {
+                    $('#hdnId').val(res.classTypeID);
+                    $('#txtTypeName').val(res.typeName);
+                    $('#txtDescription').val(res.description || '');
+                    $('#txtOrderNo').val(res.orderNo);
+                    $('#chkActive').prop('checked', res.isActive);
+                    modal.show();
+                } else {
+                    toastr.error('Record not found');
+                }
+            },
+            error: function () {
+                toastr.error('Failed to load record details');
+            }
+        });
+    });
+
+    // DELETE BUTTON
+    $(document).on('click', '.btnDelete', function () {
+        let id = $(this).data('id');
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/ClassType/Delete',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(id),
+                    success: function (res) {
+                        if (res.success) {
+                            toastr.success(res.message);
+                            loadData();
+                        } else {
+                            toastr.error(res.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error('Delete error:', error);
+                        toastr.error('Failed to delete record');
+                    }
+                });
+            }
+        });
+    });
+
+    function clearForm() {
+        $('#hdnId').val(0);
+        $('#txtTypeName').val('');
+        $('#txtDescription').val('');
+        $('#txtOrderNo').val('');
+        $('#chkActive').prop('checked', true);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+</script>
+
+<!-- SweetAlert2 for better delete confirmation (optional) -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

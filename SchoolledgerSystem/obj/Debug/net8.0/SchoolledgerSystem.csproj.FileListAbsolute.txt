@@ -148,3 +148,4 @@ C:\Users\Dell\OneDrive - padmashree International College\Desktop\.net class 1\S
 C:\Users\Dell\OneDrive - padmashree International College\Desktop\.net class 1\SchoolledgerSystem\SchoolledgerSystem\obj\Debug\net8.0\SchoolledgerSystem.pdb
 C:\Users\Dell\OneDrive - padmashree International College\Desktop\.net class 1\SchoolledgerSystem\SchoolledgerSystem\obj\Debug\net8.0\SchoolledgerSystem.genruntimeconfig.cache
 C:\Users\Dell\OneDrive - padmashree International College\Desktop\.net class 1\SchoolledgerSystem\SchoolledgerSystem\obj\Debug\net8.0\ref\SchoolledgerSystem.dll
+C:\Users\Dell\OneDrive - padmashree International College\Desktop\.net class 1\SchoolledgerSystem\SchoolledgerSystem\obj\Debug\net8.0\SchoolledgerSystem.sourcelink.json
