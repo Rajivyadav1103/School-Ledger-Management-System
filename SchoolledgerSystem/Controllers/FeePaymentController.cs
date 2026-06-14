@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolledgerSystem.DAO;
 using SchoolledgerSystem.Models;
+using System.Text;
 
 namespace SchoolledgerSystem.Controllers
 {
@@ -19,36 +20,32 @@ namespace SchoolledgerSystem.Controllers
             return View();
         }
 
-        // GET ALL PAYMENTS
+        // GET ALL PAYMENTS (Grouped by Invoice for History)
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAllPayments()
         {
             try
             {
-                var data = await _context.FeePayments
+                var payments = await _context.FeePayments
                     .Include(x => x.Student)
                         .ThenInclude(s => s.ClassType)
-                    .Include(x => x.FeeStructure)
-                        .ThenInclude(f => f.FeeType)
                     .Where(x => !x.IsDeleted)
-                    .OrderByDescending(x => x.FeePaymentID)
-                    .Select(x => new
+                    .GroupBy(x => x.InvoiceNo)
+                    .Select(g => new
                     {
-                        x.FeePaymentID,
-                        x.StudentID,
-                        StudentName = x.Student.StudentName,
-                        RollNo = x.Student.RollNo,
-                        ClassName = x.Student.ClassType.TypeName,
-                        FeeName = x.FeeStructure.FeeType.FeeName,
-                        x.PaidAmount,
-                        x.InvoiceNo,
-                        x.PaymentMethod,
-                        x.PaymentDate,
-                        x.PaymentStatus
+                        InvoiceNo = g.Key,
+                        PaymentDate = g.First().PaymentDate,
+                        StudentName = g.First().Student.StudentName,
+                        RollNo = g.First().Student.RollNo,
+                        ClassName = g.First().Student.ClassType.TypeName,
+                        TotalAmount = g.Sum(x => x.PaidAmount),
+                        Discount = g.First().Discount,
+                        DueAfter = g.First().DueAmount
                     })
+                    .OrderByDescending(x => x.PaymentDate)
                     .ToListAsync();
 
-                return Json(data);
+                return Json(payments);
             }
             catch (Exception ex)
             {
@@ -97,13 +94,12 @@ namespace SchoolledgerSystem.Controllers
             }
         }
 
-        // GET STUDENT DETAILS WITH FEE STRUCTURES FOR THEIR CLASS
+        // GET STUDENT DETAILS WITH FEE STRUCTURES
         [HttpGet]
         public async Task<IActionResult> GetStudentFeeDetails(int studentId)
         {
             try
             {
-                // Get student with their class
                 var student = await _context.Students
                     .Include(x => x.ClassType)
                     .Where(x => x.StudentID == studentId && !x.IsDeleted)
@@ -125,7 +121,6 @@ namespace SchoolledgerSystem.Controllers
                     return Json(new { success = false, message = "Student not found" });
                 }
 
-                // Get ALL fee structures for this student's class only
                 var feeStructures = await _context.FeeStructures
                     .Include(x => x.FeeType)
                     .Where(x => x.ClassTypeID == student.ClassTypeID && !x.IsDeleted && x.IsActive && x.Amount > 0)
@@ -140,17 +135,11 @@ namespace SchoolledgerSystem.Controllers
                     })
                     .ToListAsync();
 
-                // If no fee structures found
                 if (feeStructures == null || !feeStructures.Any())
                 {
-                    return Json(new
-                    {
-                        success = false,
-                        message = $"No fee structures configured for {student.ClassName}. Please contact administrator."
-                    });
+                    return Json(new { success = false, message = $"No fee structures configured for {student.ClassName}" });
                 }
 
-                // Calculate payment status for each fee
                 var feesWithStatus = new List<object>();
                 decimal totalFeeAmount = 0;
                 decimal totalPaidOverall = 0;
@@ -182,7 +171,6 @@ namespace SchoolledgerSystem.Controllers
                 var totalDueOverall = totalFeeAmount - totalPaidOverall;
                 if (totalDueOverall < 0) totalDueOverall = 0;
 
-                // Get payment history
                 var paymentHistory = await _context.FeePayments
                     .Include(x => x.FeeStructure)
                         .ThenInclude(f => f.FeeType)
@@ -194,9 +182,11 @@ namespace SchoolledgerSystem.Controllers
                         x.InvoiceNo,
                         FeeName = x.FeeStructure.FeeType.FeeName,
                         x.PaidAmount,
+                        x.Discount,
                         x.PaymentDate,
                         x.PaymentMethod,
-                        x.PaymentStatus
+                        x.PaymentStatus,
+                        x.DueAmount
                     })
                     .ToListAsync();
 
@@ -221,97 +211,91 @@ namespace SchoolledgerSystem.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveBulkPayment([FromBody] BulkPaymentModel model)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                if (model == null)
-                {
+                if (model == null || model.StudentID <= 0)
                     return Json(new { success = false, message = "Invalid data" });
-                }
-
-                if (model.StudentID <= 0)
-                {
-                    return Json(new { success = false, message = "Please select a student" });
-                }
 
                 if (model.FeeStructureIds == null || !model.FeeStructureIds.Any())
-                {
                     return Json(new { success = false, message = "Please select at least one fee" });
-                }
 
-                if (model.PaidAmount <= 0)
-                {
-                    return Json(new { success = false, message = "Paid amount must be greater than 0" });
-                }
-
-                if (model.PaidAmount > model.TotalDue)
-                {
-                    return Json(new { success = false, message = "Paid amount cannot exceed total due amount" });
-                }
+                if (model.PaidAmount <= 0 && model.AdvanceAmount <= 0)
+                    return Json(new { success = false, message = "Please enter payment amount" });
 
                 // Generate invoice number
-                string invoiceNo = model.InvoiceNo;
-                if (string.IsNullOrEmpty(invoiceNo))
-                {
-                    var lastPayment = await _context.FeePayments
-                        .OrderByDescending(x => x.FeePaymentID)
-                        .FirstOrDefaultAsync();
+                string invoiceNo = string.IsNullOrEmpty(model.InvoiceNo) ?
+                    $"INV-{DateTime.Now:yyyyMMddHHmmss}" : model.InvoiceNo;
 
-                    int lastNumber = 0;
-                    if (lastPayment != null && !string.IsNullOrEmpty(lastPayment.InvoiceNo))
+                var payments = new List<FeePayment>();
+                decimal totalPaid = 0;
+                int monthsToPay = model.MonthsToPay > 0 ? model.MonthsToPay : 1;
+                decimal monthlyAmount = model.PaidAmount / monthsToPay;
+                decimal remainingAmount = model.PaidAmount;
+
+                // Handle Advance Payment
+                if (model.AdvanceAmount > 0)
+                {
+                    var advancePayment = new FeePayment
                     {
-                        string[] parts = lastPayment.InvoiceNo.Split('-');
-                        if (parts.Length >= 2 && int.TryParse(parts[1], out int num))
-                        {
-                            lastNumber = num;
-                        }
-                    }
-                    invoiceNo = $"INV-{DateTime.Now:yyyyMM}-{lastNumber + 1:D6}";
+                        StudentID = model.StudentID,
+                        FeeStructureID = 0,
+                        TotalAmount = model.AdvanceAmount,
+                        PaidAmount = model.AdvanceAmount,
+                        DueAmount = 0,
+                        Discount = 0,
+                        Fine = 0,
+                        NetAmount = model.AdvanceAmount,
+                        InvoiceNo = invoiceNo,
+                        PaymentMethod = model.PaymentMethod,
+                        PaymentDate = model.PaymentDate,
+                        AcademicYear = DateTime.Now.Year + "-" + (DateTime.Now.Year + 1),
+                        PaymentStatus = "Advance",
+                        IsDeleted = false,
+                        CreatedDate = DateTime.Now
+                    };
+                    payments.Add(advancePayment);
+                    totalPaid += model.AdvanceAmount;
                 }
 
-                // Distribute payment among selected fees
-                decimal remainingAmount = model.PaidAmount;
-                var payments = new List<FeePayment>();
-                var paymentDistribution = new List<object>();
-
+                // Handle Normal/Monthly Payments
                 foreach (var feeId in model.FeeStructureIds)
                 {
                     var feeDetail = model.SelectedFees.FirstOrDefault(x => x.FeeStructureID == feeId);
                     if (feeDetail != null && feeDetail.DueAmount > 0)
                     {
-                        decimal amountToPay = Math.Min(remainingAmount, feeDetail.DueAmount);
-                        if (amountToPay > 0)
+                        for (int month = 1; month <= monthsToPay; month++)
                         {
-                            var payment = new FeePayment
+                            decimal amountToPay = Math.Min(remainingAmount, monthlyAmount);
+                            if (amountToPay > 0.01m) // Only add if amount > 0
                             {
-                                StudentID = model.StudentID,
-                                FeeStructureID = feeId,
-                                TotalAmount = feeDetail.Amount,
-                                PaidAmount = amountToPay,
-                                DueAmount = feeDetail.DueAmount - amountToPay,
-                                Discount = 0,
-                                Fine = 0,
-                                NetAmount = amountToPay,
-                                InvoiceNo = invoiceNo,
-                                PaymentMethod = model.PaymentMethod,
-                                PaymentDate = model.PaymentDate,
-                                AcademicYear = feeDetail.AcademicYear,
-                                PaymentStatus = (feeDetail.DueAmount - amountToPay) <= 0 ? "Paid" : "Partial",
-                                IsDeleted = false,
-                                CreatedDate = DateTime.Now
-                            };
+                                var payment = new FeePayment
+                                {
+                                    StudentID = model.StudentID,
+                                    FeeStructureID = feeId,
+                                    TotalAmount = feeDetail.Amount,
+                                    PaidAmount = amountToPay,
+                                    DueAmount = feeDetail.DueAmount - amountToPay,
+                                    Discount = model.Discount / monthsToPay,
+                                    Fine = 0,
+                                    NetAmount = amountToPay,
+                                    InvoiceNo = invoiceNo,
+                                    PaymentMethod = model.PaymentMethod,
+                                    PaymentDate = model.PaymentDate.AddMonths(month - 1),
+                                    AcademicYear = feeDetail.AcademicYear,
+                                    PaymentStatus = "Paid",
+                                    IsDeleted = false,
+                                    CreatedDate = DateTime.Now
+                                };
 
-                            payments.Add(payment);
-                            remainingAmount -= amountToPay;
-
-                            paymentDistribution.Add(new
-                            {
-                                feeName = feeDetail.FeeName,
-                                amount = amountToPay
-                            });
+                                payments.Add(payment);
+                                remainingAmount -= amountToPay;
+                                totalPaid += amountToPay;
+                            }
+                            if (remainingAmount <= 0.01m) break;
                         }
-
-                        if (remainingAmount <= 0) break;
                     }
+                    if (remainingAmount <= 0.01m) break;
                 }
 
                 if (payments.Any())
@@ -320,22 +304,77 @@ namespace SchoolledgerSystem.Controllers
                     await _context.SaveChangesAsync();
                 }
 
+                await transaction.CommitAsync();
+
                 return Json(new
                 {
                     success = true,
                     message = "Payment processed successfully",
                     invoiceNo = invoiceNo,
-                    totalPaid = model.PaidAmount,
-                    payments = paymentDistribution
+                    totalPaid = totalPaid
                 });
             }
             catch (DbUpdateException ex)
             {
+                await transaction.RollbackAsync();
                 return Json(new { success = false, message = "Database error: " + (ex.InnerException?.Message ?? ex.Message) });
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 return Json(new { success = false, message = "Error: " + ex.Message });
+            }
+        }
+
+        // EDIT PAYMENT
+        [HttpPost]
+        public async Task<IActionResult> EditPayment([FromBody] EditPaymentModel model)
+        {
+            try
+            {
+                var payment = await _context.FeePayments
+                    .FirstOrDefaultAsync(x => x.FeePaymentID == model.FeePaymentID && !x.IsDeleted);
+
+                if (payment == null)
+                    return Json(new { success = false, message = "Payment not found" });
+
+                // Update payment details
+                payment.PaidAmount = model.PaidAmount;
+                payment.Discount = model.Discount;
+                payment.PaymentMethod = model.PaymentMethod;
+                payment.NetAmount = model.PaidAmount;
+                payment.DueAmount = payment.TotalAmount - model.PaidAmount;
+                payment.PaymentStatus = payment.DueAmount <= 0 ? "Paid" : "Partial";
+                payment.UpdatedDate = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Payment updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // DELETE PAYMENT
+        [HttpPost]
+        public async Task<IActionResult> DeletePayment([FromBody] int id)
+        {
+            try
+            {
+                var payment = await _context.FeePayments
+                    .FirstOrDefaultAsync(x => x.FeePaymentID == id && !x.IsDeleted);
+
+                if (payment == null)
+                    return Json(new { success = false, message = "Payment not found" });
+
+                payment.IsDeleted = true;
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = "Payment deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
             }
         }
 
@@ -354,9 +393,7 @@ namespace SchoolledgerSystem.Controllers
                     .ToListAsync();
 
                 if (payments == null || !payments.Any())
-                {
                     return Json(new { success = false, message = "Receipt not found" });
-                }
 
                 var firstPayment = payments.First();
                 var receipt = new
@@ -370,10 +407,16 @@ namespace SchoolledgerSystem.Controllers
                     PaymentMethod = firstPayment.PaymentMethod,
                     AcademicYear = firstPayment.AcademicYear,
                     TotalPaid = payments.Sum(x => x.PaidAmount),
-                    FeeDetails = payments.Select(x => new
+                    TotalDiscount = payments.Sum(x => x.Discount),
+                    AdvanceAmount = payments.Where(x => x.FeeStructureID == 0).Sum(x => x.PaidAmount),
+                    PaymentType = payments.Any(x => x.FeeStructureID == 0) ? "Advance" : "Normal",
+                    MonthsPaid = payments.Count(x => x.FeeStructureID != 0),
+                    FeeDetails = payments.Where(x => x.FeeStructureID != 0).Select(x => new
                     {
                         FeeName = x.FeeStructure.FeeType.FeeName,
                         Amount = x.PaidAmount,
+                        Month = x.PaymentDate.ToString("MMMM yyyy"),
+                        Discount = x.Discount,
                         Status = x.PaymentStatus
                     }).ToList()
                 };
@@ -393,11 +436,9 @@ namespace SchoolledgerSystem.Controllers
             try
             {
                 var today = DateTime.Today;
-                var tomorrow = today.AddDays(1);
-
                 var payments = await _context.FeePayments
                     .Include(x => x.Student)
-                    .Where(x => x.PaymentDate >= today && x.PaymentDate < tomorrow && !x.IsDeleted)
+                    .Where(x => x.PaymentDate.Date == today && !x.IsDeleted)
                     .GroupBy(x => x.InvoiceNo)
                     .Select(g => new
                     {
@@ -406,6 +447,7 @@ namespace SchoolledgerSystem.Controllers
                         StudentName = g.First().Student.StudentName,
                         RollNo = g.First().Student.RollNo,
                         TotalAmount = g.Sum(x => x.PaidAmount),
+                        Discount = g.Sum(x => x.Discount),
                         PaymentMethod = g.First().PaymentMethod
                     })
                     .ToListAsync();
@@ -417,75 +459,23 @@ namespace SchoolledgerSystem.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-
-        // GET ALL PAYMENTS HISTORY
-        [HttpGet]
-        public async Task<IActionResult> GetAllPayments()
-        {
-            try
-            {
-                var payments = await _context.FeePayments
-                    .Include(x => x.Student)
-                        .ThenInclude(s => s.ClassType)
-                    .Where(x => !x.IsDeleted)
-                    .GroupBy(x => x.InvoiceNo)
-                    .Select(g => new
-                    {
-                        InvoiceNo = g.Key,
-                        PaymentDate = g.First().PaymentDate,
-                        StudentName = g.First().Student.StudentName,
-                        RollNo = g.First().Student.RollNo,
-                        ClassName = g.First().Student.ClassType.TypeName,
-                        TotalAmount = g.Sum(x => x.PaidAmount)
-                    })
-                    .OrderByDescending(x => x.PaymentDate)
-                    .ToListAsync();
-
-                return Json(payments);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
-        // DELETE PAYMENT
-        [HttpPost]
-        public async Task<IActionResult> Delete([FromBody] int id)
-        {
-            try
-            {
-                var data = await _context.FeePayments
-                    .FirstOrDefaultAsync(x => x.FeePaymentID == id && !x.IsDeleted);
-
-                if (data == null)
-                {
-                    return Json(new { success = false, message = "Record not found" });
-                }
-
-                data.IsDeleted = true;
-                await _context.SaveChangesAsync();
-
-                return Json(new { success = true, message = "Payment deleted successfully" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Error: " + ex.Message });
-            }
-        }
     }
 
-    // Models for bulk payment
     public class BulkPaymentModel
     {
         public int StudentID { get; set; }
         public List<int> FeeStructureIds { get; set; }
         public List<SelectedFeeModel> SelectedFees { get; set; }
         public decimal PaidAmount { get; set; }
+        public decimal Discount { get; set; }
+        public decimal AdvanceAmount { get; set; }
+        public int MonthsToPay { get; set; }
+        public string PaymentType { get; set; }
         public string PaymentMethod { get; set; }
         public DateTime PaymentDate { get; set; }
         public string InvoiceNo { get; set; }
         public decimal TotalDue { get; set; }
+        public decimal AfterDiscount { get; set; }
     }
 
     public class SelectedFeeModel
@@ -495,5 +485,13 @@ namespace SchoolledgerSystem.Controllers
         public decimal Amount { get; set; }
         public decimal DueAmount { get; set; }
         public string AcademicYear { get; set; }
+    }
+
+    public class EditPaymentModel
+    {
+        public int FeePaymentID { get; set; }
+        public decimal PaidAmount { get; set; }
+        public decimal Discount { get; set; }
+        public string PaymentMethod { get; set; }
     }
 }

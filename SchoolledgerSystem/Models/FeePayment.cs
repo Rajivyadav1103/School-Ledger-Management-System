@@ -53,10 +53,13 @@ namespace SchoolledgerSystem.Models
         // 🔘 Status
         public string PaymentStatus { get; set; } = "Paid"; // Paid, Partial, Pending
 
+        public DateTime CreatedDate {  get; set; } = DateTime.Now;
+        public DateTime UpdatedDate { get; set; }= DateTime.Now;
+
         // 🗑 Soft Delete
         public bool IsDeleted { get; set; } = false;
 
         // 🕒 System
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+     
     }
 }

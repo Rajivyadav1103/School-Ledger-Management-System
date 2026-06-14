@@ -68,10 +68,96 @@
         font-weight: bold;
     }
 
+    .status-partial {
+        color: orange;
+        font-weight: bold;
+    }
+
     .today-row {
         background-color: #e8f5e9;
     }
+
+    .overall-summary {
+        background-color: #e9ecef;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    .selected-summary {
+        background-color: #d1ecf1;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border: 1px solid #bee5eb;
+    }
+
+    .payment-type-btn {
+        margin: 5px;
+        padding: 8px 15px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+        .payment-type-btn.active {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .payment-type-btn.inactive {
+            background-color: #6c757d;
+            color: white;
+        }
+
+    /* Receipt Print Styles */
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .receipt-school-name {
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .receipt-title {
+        font-size: 18px;
+        margin-top: 5px;
+    }
+
+    .receipt-divider {
+        border-top: 2px dashed #333;
+        margin: 15px 0;
+    }
+
+    .receipt-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+    }
+
+        .receipt-table th, .receipt-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .receipt-table th {
+            background-color: #f2f2f2;
+        }
+
+    .receipt-footer {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 12px;
+    }
 </style>
+
+<link href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" rel="stylesheet">
+<link href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
 
 <div class="container-fluid mt-3">
     <h2 class="text-center mb-4">💰 Fee Payment System</h2>
@@ -88,12 +174,8 @@
                     <div class="input-group">
                         <input type="text" class="form-control form-control-lg" id="searchStudent"
                                placeholder="Search by Name, Roll Number, or Father's Name..." />
-                        <button class="btn btn-primary" id="btnSearch">
-                            <i class="fas fa-search"></i> Search
-                        </button>
-                        <button class="btn btn-secondary" id="btnClearSearch">
-                            <i class="fas fa-times"></i> Clear
-                        </button>
+                        <button class="btn btn-primary" id="btnSearch"><i class="fas fa-search"></i> Search</button>
+                        <button class="btn btn-secondary" id="btnClearSearch"><i class="fas fa-times"></i> Clear</button>
                     </div>
                 </div>
             </div>
@@ -101,9 +183,8 @@
         </div>
     </div>
 
-    <!-- Payment Section (shown after student selection) -->
+    <!-- Payment Section -->
     <div id="paymentSection" style="display: none;">
-        <!-- Student Information Card -->
         <div class="card mb-4">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0"><i class="fas fa-user-graduate"></i> Student Information</h5>
@@ -122,7 +203,6 @@
         <input type="hidden" id="hdnStudentId" value="0" />
 
         <div class="row">
-            <!-- Fee Selection Column -->
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header bg-info text-white">
@@ -135,27 +215,68 @@
                 </div>
             </div>
 
-            <!-- Payment Summary Column -->
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header bg-warning">
                         <h5 class="mb-0"><i class="fas fa-calculator"></i> Payment Summary</h5>
                     </div>
                     <div class="card-body">
-                        <div class="summary-card">
+                        <div class="overall-summary">
+                            <h6 class="text-muted mb-2">Overall Fee Summary (All Fees)</h6>
                             <div class="row text-center">
-                                <div class="col-4">
-                                    <h6>Total Fee</h6>
-                                    <h3 id="totalAmount">₹ 0</h3>
-                                </div>
-                                <div class="col-4">
-                                    <h6>Already Paid</h6>
-                                    <h3 id="totalPaid">₹ 0</h3>
-                                </div>
-                                <div class="col-4">
-                                    <h6>Total Due</h6>
-                                    <h3 id="totalDue">₹ 0</h3>
-                                </div>
+                                <div class="col-4"><small>Total Fee</small><h5 id="totalAmount">₹ 0</h5></div>
+                                <div class="col-4"><small>Already Paid</small><h5 id="totalPaid">₹ 0</h5></div>
+                                <div class="col-4"><small>Total Due</small><h5 id="totalDue">₹ 0</h5></div>
+                            </div>
+                        </div>
+
+                        <!-- Multi-Month Payment Option -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Payment Duration</label>
+                            <select class="form-select" id="ddlMonthsToPay">
+                                <option value="1">1 Month</option>
+                                <option value="2">2 Months</option>
+                                <option value="3">3 Months</option>
+                                <option value="4">4 Months</option>
+                                <option value="5">5 Months</option>
+                                <option value="6">6 Months</option>
+                                <option value="12">12 Months (Yearly)</option>
+                            </select>
+                            <small class="text-muted">Select how many months you want to pay</small>
+                        </div>
+
+                        <!-- Payment Type Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Payment Type</label>
+                            <div>
+                                <button type="button" class="btn btn-sm payment-type-btn active" data-type="normal">💰 Normal Payment</button>
+                                <button type="button" class="btn btn-sm payment-type-btn inactive" data-type="advance">📈 Advance Payment</button>
+                                <button type="button" class="btn btn-sm payment-type-btn inactive" data-type="monthly">📅 Monthly Installment</button>
+                            </div>
+                            <small class="text-muted" id="paymentTypeHint">Pay for current month</small>
+                        </div>
+
+                        <div id="selectedSummary" class="selected-summary" style="display: none;">
+                            <h6 class="text-primary mb-2"><i class="fas fa-check-circle"></i> Selected Fees Summary</h6>
+                            <div id="selectedFeesBreakdown"></div>
+                            <hr class="my-2">
+                            <div class="row">
+                                <div class="col-6"><strong>Total Selected Due:</strong></div>
+                                <div class="col-6 text-end"><strong id="totalSelectedDueAmount">₹ 0</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Discount Section -->
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Discount (₹)</label>
+                                <input type="number" class="form-control" id="txtDiscount" value="0" step="0.01" min="0" />
+                                <small class="text-muted">Apply discount if any</small>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold">Advance Payment</label>
+                                <input type="number" class="form-control" id="txtAdvance" value="0" step="0.01" min="0" />
+                                <small class="text-muted">Amount to pay in advance</small>
                             </div>
                         </div>
 
@@ -186,25 +307,28 @@
                             </div>
                         </div>
 
-                        <div class="alert alert-success text-center">
-                            <strong>Net Payable:</strong>
-                            <span id="lblNetPayable" style="font-size: 28px; font-weight: bold;">₹ 0</span>
+                        <!-- Payment Calculation Details -->
+                        <div class="alert alert-info">
+                            <strong>Payment Details:</strong><br />
+                            <div class="row"><div class="col-6">Total Due Amount:</div><div class="col-6 text-end" id="displayDueAmount">₹ 0</div></div>
+                            <div class="row"><div class="col-6">Discount Applied:</div><div class="col-6 text-end text-success" id="displayDiscount">- ₹ 0</div></div>
+                            <div class="row"><div class="col-6">Amount After Discount:</div><div class="col-6 text-end" id="displayAfterDiscount">₹ 0</div></div>
+                            <div class="row"><div class="col-6">Monthly Payment:</div><div class="col-6 text-end" id="displayMonthlyPayment">₹ 0</div></div>
+                            <hr />
+                            <div class="row"><div class="col-6"><strong>Total to Pay:</strong></div><div class="col-6 text-end"><strong id="lblNetPayable" style="font-size: 18px;">₹ 0</strong></div></div>
+                            <div class="row"><div class="col-6"><strong>Remaining Due:</strong></div><div class="col-6 text-end text-warning"><strong id="remainingDue">₹ 0</strong></div></div>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button class="btn btn-success btn-lg btn-process-payment">
-                                <i class="fas fa-money-bill-wave"></i> Process Payment
-                            </button>
-                            <button class="btn btn-danger btn-cancel-payment">
-                                <i class="fas fa-times"></i> Cancel
-                            </button>
+                            <button class="btn btn-success btn-lg btn-process-payment"><i class="fas fa-money-bill-wave"></i> Process Payment</button>
+                            <button class="btn btn-danger btn-cancel-payment"><i class="fas fa-times"></i> Cancel</button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Payment History -->
+        <!-- Payment History with Edit/Delete -->
         <div class="card mt-4">
             <div class="card-header bg-secondary text-white">
                 <h5 class="mb-0"><i class="fas fa-history"></i> Payment History</h5>
@@ -213,11 +337,9 @@
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         <thead class="table-dark">
-                            <tr><th>Date</th><th>Invoice No</th><th>Fee Name</th><th>Amount</th><th>Method</th><th>Status</th><th>Action</th></tr>
+                            <tr><th>Date</th><th>Invoice No</th><th>Fee Name</th><th>Amount</th><th>Discount</th><th>Method</th><th>Status</th><th>Actions</th></tr>
                         </thead>
-                        <tbody id="paymentHistoryBody">
-                            <tr><td colspan="7" class="text-center">No payment history</td></tr>
-                        </tbody>
+                        <tbody id="paymentHistoryBody"><tr><td colspan="8" class="text-center">No payment history</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -231,13 +353,9 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead class="table-dark">
-                        <tr><th>Time</th><th>Invoice No</th><th>Student Name</th><th>Roll No</th><th>Amount</th><th>Method</th><th>Action</th></tr>
-                    </thead>
-                    <tbody id="tblTodayPayments">
-                        <tr><td colspan="7" class="text-center">No payments today</td></tr>
-                    </tbody>
+                <table class="table table-bordered" id="todayPaymentsTable">
+                    <thead class="table-dark"><tr><th>Time</th><th>Invoice No</th><th>Student Name</th><th>Roll No</th><th>Amount</th><th>Discount</th><th>Method</th><th>Action</th></tr></thead>
+                    <tbody id="tblTodayPayments"><tr><td colspan="8" class="text-center">No payments today</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -250,14 +368,50 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered">
+                <table class="table table-bordered table-striped" id="allPaymentsTable">
                     <thead class="table-dark">
-                        <tr><th>Date</th><th>Invoice No</th><th>Student Name</th><th>Roll No</th><th>Class</th><th>Amount</th><th>Action</th></tr>
+                        <tr><th>Date</th><th>Invoice No</th><th>Student Name</th><th>Roll No</th><th>Class</th><th>Amount</th><th>Discount</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody id="tblAllPayments">
-                        <tr><td colspan="7" class="text-center">No payments found</td></tr>
-                    </tbody>
+                    <td>
+                    <td colspan="9" class="text-center">No payments found</td></tr></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Payment Modal -->
+<div class="modal fade" id="editPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="fas fa-edit"></i> Edit Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editPaymentId" />
+                <div class="mb-3">
+                    <label>Amount (₹)</label>
+                    <input type="number" class="form-control" id="editAmount" step="0.01" />
+                </div>
+                <div class="mb-3">
+                    <label>Discount (₹)</label>
+                    <input type="number" class="form-control" id="editDiscount" step="0.01" />
+                </div>
+                <div class="mb-3">
+                    <label>Payment Method</label>
+                    <select class="form-select" id="editMethod">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Online">Online</option>
+                        <option value="Card">Card</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary btn-update-payment">Update Payment</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
             </div>
         </div>
     </div>
@@ -280,534 +434,543 @@
     </div>
 </div>
 
-@section Scripts {
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
-    <script>
-        let selectedStudentId = 0;
-        let selectedFees = [];
-        let currentStudentData = null;
+<script>
+    let selectedStudentId = 0;
+    let selectedFees = [];
+    let dataTable;
+    let currentPaymentType = 'normal';
+    let editModal;
+    let receiptModal;
 
-        $(document).ready(function() {
-            let today = new Date();
-            $('#todayDate').text(today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
-            $('#txtPaymentDate').val(today.toISOString().split('T')[0]);
+    $(document).ready(function() {
+        let today = new Date();
+        $('#todayDate').text(today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
+        $('#txtPaymentDate').val(today.toISOString().split('T')[0]);
 
-            loadTodayPayments();
-            loadAllPayments();
+        editModal = new bootstrap.Modal(document.getElementById('editPaymentModal'));
+        receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
 
-            toastr.options = {
-                "closeButton": true,
-                "progressBar": true,
-                "positionClass": "toast-top-right",
-                "timeOut": "3000"
-            };
-        });
+        loadTodayPayments();
+        loadAllPayments();
 
-        // Search Students
-        $('#btnSearch').click(function() {
-            let searchTerm = $('#searchStudent').val().trim();
-            if (searchTerm.length < 2) {
-                toastr.warning('Please enter at least 2 characters');
-                return;
-            }
+        toastr.options = { "closeButton": true, "progressBar": true, "positionClass": "toast-top-right", "timeOut": "3000" };
 
-            $.ajax({
-                url: '/FeePayment/SearchStudents',
-                type: 'GET',
-                data: { searchTerm: searchTerm },
-                success: function(students) {
-                    displaySearchResults(students);
-                },
-                error: function() {
-                    toastr.error('Error searching students');
-                }
-            });
-        });
+        // Payment type selection
+        $('.payment-type-btn').click(function() {
+            $('.payment-type-btn').removeClass('active').addClass('inactive');
+            $(this).removeClass('inactive').addClass('active');
+            currentPaymentType = $(this).data('type');
 
-        $('#searchStudent').keypress(function(e) {
-            if (e.which == 13) {
-                $('#btnSearch').click();
-            }
-        });
-
-        $('#btnClearSearch').click(function() {
-            $('#searchStudent').val('');
-            $('#searchResults').hide();
-        });
-
-        function displaySearchResults(students) {
-            if (!students || students.length === 0) {
-                $('#searchResults').html('<div class="alert alert-warning">No students found</div>').show();
-                return;
-            }
-
-            let html = '<div class="list-group">';
-            students.forEach(function(student) {
-                html += `
-                    <div class="list-group-item search-result-item" data-id="${student.studentID}">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <strong><i class="fas fa-user-graduate"></i> ${escapeHtml(student.studentName)}</strong><br/>
-                                <small><i class="fas fa-id-card"></i> Roll: ${student.rollNo || 'N/A'} | <i class="fas fa-chalkboard"></i> Class: ${escapeHtml(student.className)}</small><br/>
-                                <small><i class="fas fa-user"></i> Father: ${escapeHtml(student.fatherName) || 'N/A'}</small>
-                            </div>
-                            <button class="btn btn-sm btn-success btn-select-student" data-id="${student.studentID}">
-                                <i class="fas fa-money-bill"></i> Select
-                            </button>
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            $('#searchResults').html(html).show();
-        }
-
-        $(document).on('click', '.btn-select-student, .search-result-item', function(e) {
-            let studentId = $(this).closest('.search-result-item').data('id') || $(this).data('id');
-            if (studentId) {
-                loadStudentDetails(studentId);
-            }
-        });
-
-        function loadStudentDetails(studentId) {
-            $('#searchResults').hide();
-            $('#searchStudent').val('');
-
-            $.ajax({
-                url: '/FeePayment/GetStudentFeeDetails',
-                type: 'GET',
-                data: { studentId: studentId },
-                success: function(res) {
-                    if (res.success) {
-                        selectedStudentId = studentId;
-                        currentStudentData = res;
-                        $('#hdnStudentId').val(studentId);
-                        $('#displayStudentName').text(res.student.studentName);
-                        $('#displayRollNo').text(res.student.rollNo || 'N/A');
-                        $('#displayClass').text(res.student.className);
-                        $('#displayFatherName').text(res.student.fatherName || 'N/A');
-                        $('#displayContact').text(res.student.contactNo || 'N/A');
-
-                        $('#totalAmount').text('₹ ' + res.totalFeeAmount.toFixed(2));
-                        $('#totalPaid').text('₹ ' + res.totalPaidOverall.toFixed(2));
-                        $('#totalDue').text('₹ ' + res.totalDueOverall.toFixed(2));
-
-                        displayFeeList(res.feeStructures);
-                        displayPaymentHistory(res.paymentHistory);
-
-                        $('#paymentSection').show();
-                        generateInvoiceNumber();
-
-                        $('html, body').animate({ scrollTop: $('#paymentSection').offset().top - 50 }, 500);
-                    } else {
-                        toastr.error(res.message);
-                    }
-                },
-                error: function() {
-                    toastr.error('Error loading student details');
-                }
-            });
-        }
-
-        function displayFeeList(fees) {
-            if (!fees || fees.length === 0) {
-                $('#feeList').html('<div class="alert alert-warning">No fees configured for this class</div>');
-                return;
-            }
-
-            let html = '';
-            fees.forEach(function(fee) {
-                let statusClass = fee.isFullyPaid ? 'status-paid' : 'status-due';
-                let statusText = fee.isFullyPaid ? '✓ Fully Paid' : 'Due: ₹' + fee.dueAmount.toFixed(2);
-                let bgColor = fee.isFullyPaid ? '#d4edda' : 'white';
-
-                html += `
-                    <div class="fee-item" style="background:${bgColor}"
-                         data-id="${fee.feeStructureID}"
-                         data-name="${escapeHtml(fee.feeName)}"
-                         data-amount="${fee.amount}"
-                         data-due="${fee.dueAmount}"
-                         data-academic="${fee.academicYear}">
-                        <div class="form-check">
-                            <input class="form-check-input fee-checkbox" type="checkbox"
-                                   value="${fee.feeStructureID}"
-                                   id="fee_${fee.feeStructureID}"
-                                   ${fee.isFullyPaid ? 'disabled' : ''}>
-                            <label class="form-check-label" for="fee_${fee.feeStructureID}">
-                                <strong>${escapeHtml(fee.feeName)}</strong><br/>
-                                <small>Total: ₹${fee.amount.toFixed(2)} | Paid: ₹${fee.totalPaid.toFixed(2)} | <span class="${statusClass}">${statusText}</span></small>
-                            </label>
-                        </div>
-                    </div>
-                `;
-            });
-            $('#feeList').html(html);
-
-            $('.fee-checkbox').change(function() {
-                updateSelectedFees();
-            });
-        }
-
-        function updateSelectedFees() {
-            selectedFees = [];
-            $('.fee-checkbox:checked').each(function() {
-                let parent = $(this).closest('.fee-item');
-                selectedFees.push({
-                    feeStructureID: parseInt($(this).val()),
-                    feeName: parent.data('name'),
-                    amount: parent.data('amount'),
-                    dueAmount: parent.data('due'),
-                    academicYear: parent.data('academic')
-                });
-            });
-            calculateTotalSelectedDue();
-        }
-
-        function calculateTotalSelectedDue() {
-            let totalSelectedDue = 0;
-            selectedFees.forEach(function(fee) {
-                totalSelectedDue += fee.dueAmount;
-            });
-            $('#txtPaymentAmount').attr('max', totalSelectedDue);
-            $('#totalDue').text('₹ ' + currentStudentData.totalDueOverall.toFixed(2));
-            calculateNetPayable();
-        }
-
-        function calculateNetPayable() {
-            let paymentAmount = parseFloat($('#txtPaymentAmount').val()) || 0;
-            let maxDue = parseFloat($('#txtPaymentAmount').attr('max')) || 0;
-
-            if (paymentAmount > maxDue && maxDue > 0) {
-                $('#txtPaymentAmount').val(maxDue);
-                paymentAmount = maxDue;
-            }
-
-            $('#lblNetPayable').text('₹ ' + paymentAmount.toFixed(2));
-
-            if (paymentAmount > 0) {
-                $('#lblNetPayable').css('color', '#28a745');
+            if (currentPaymentType === 'advance') {
+                $('#paymentTypeHint').text('Advance payment will be credited to future months');
+                $('#txtAdvance').prop('readonly', false);
+            } else if (currentPaymentType === 'monthly') {
+                $('#paymentTypeHint').text('Pay in monthly installments');
+                $('#txtAdvance').prop('readonly', true);
+                $('#txtAdvance').val(0);
             } else {
-                $('#lblNetPayable').css('color', '#dc3545');
+                $('#paymentTypeHint').text('Pay for current month');
+                $('#txtAdvance').prop('readonly', true);
+                $('#txtAdvance').val(0);
             }
-        }
-
-        $('#txtPaymentAmount').on('keyup change', function() {
             calculateNetPayable();
         });
 
-        function generateInvoiceNumber() {
-            let now = new Date();
-            let invoiceNo = 'INV-' + now.getFullYear() +
-                          String(now.getMonth() + 1).padStart(2, '0') +
-                          String(now.getDate()).padStart(2, '0') + '-' +
-                          String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-            $('#txtInvoiceNo').val(invoiceNo);
+        $('#ddlMonthsToPay').change(function() { calculateNetPayable(); });
+    });
+
+    // Search Students
+    $('#btnSearch').click(function() {
+        let searchTerm = $('#searchStudent').val().trim();
+        if (searchTerm.length < 2) { toastr.warning('Please enter at least 2 characters'); return; }
+        $.ajax({ url: '/FeePayment/SearchStudents', type: 'GET', data: { searchTerm: searchTerm }, success: displaySearchResults, error: () => toastr.error('Error searching students') });
+    });
+
+    $('#searchStudent').keypress(function(e) { if (e.which == 13) $('#btnSearch').click(); });
+    $('#btnClearSearch').click(function() { $('#searchStudent').val(''); $('#searchResults').hide(); });
+
+    function displaySearchResults(students) {
+        if (!students || students.length === 0) { $('#searchResults').html('<div class="alert alert-warning">No students found</div>').show(); return; }
+        let html = '<div class="list-group">';
+        students.forEach(s => {
+            html += `<div class="list-group-item search-result-item" data-id="${s.studentID}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div><strong>${escapeHtml(s.studentName)}</strong><br/><small>Roll: ${s.rollNo || 'N/A'} | Class: ${escapeHtml(s.className)} | Father: ${escapeHtml(s.fatherName) || 'N/A'}</small></div>
+                    <button class="btn btn-sm btn-success btn-select-student" data-id="${s.studentID}"><i class="fas fa-money-bill"></i> Select</button>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        $('#searchResults').html(html).show();
+    }
+
+    $(document).on('click', '.btn-select-student', function(e) { e.stopPropagation(); loadStudentDetails($(this).data('id')); });
+
+    function loadStudentDetails(studentId) {
+        $('#searchResults').hide(); $('#searchStudent').val('');
+        $.ajax({
+            url: '/FeePayment/GetStudentFeeDetails', type: 'GET', data: { studentId: studentId },
+            success: function(res) {
+                if (res.success) {
+                    selectedStudentId = studentId;
+                    $('#hdnStudentId').val(studentId);
+                    $('#displayStudentName').text(res.student.studentName);
+                    $('#displayRollNo').text(res.student.rollNo || 'N/A');
+                    $('#displayClass').text(res.student.className);
+                    $('#displayFatherName').text(res.student.fatherName || 'N/A');
+                    $('#displayContact').text(res.student.contactNo || 'N/A');
+                    $('#totalAmount').text('₹ ' + res.totalFeeAmount.toFixed(2));
+                    $('#totalPaid').text('₹ ' + res.totalPaidOverall.toFixed(2));
+                    $('#totalDue').text('₹ ' + res.totalDueOverall.toFixed(2));
+                    displayFeeList(res.feeStructures);
+                    displayPaymentHistory(res.paymentHistory);
+                    $('#paymentSection').show();
+                    $('#txtInvoiceNo').val('INV-' + new Date().getTime());
+                    $('html, body').animate({ scrollTop: $('#paymentSection').offset().top - 50 }, 500);
+                } else { toastr.error(res.message); }
+            }, error: () => toastr.error('Error loading student details')
+        });
+    }
+
+    function displayFeeList(fees) {
+        if (!fees || fees.length === 0) { $('#feeList').html('<div class="alert alert-warning">No fees configured for this class</div>'); return; }
+        let html = '';
+        fees.forEach(fee => {
+            let statusClass = fee.isFullyPaid ? 'status-paid' : (fee.dueAmount > 0 && fee.dueAmount < fee.amount ? 'status-partial' : 'status-due');
+            let statusText = fee.isFullyPaid ? '✓ Fully Paid' : (fee.dueAmount > 0 && fee.dueAmount < fee.amount ? `Due: ₹${fee.dueAmount.toFixed(2)}` : `Due: ₹${fee.dueAmount.toFixed(2)}`);
+            let bgColor = fee.isFullyPaid ? '#d4edda' : (fee.dueAmount > 0 && fee.dueAmount < fee.amount ? '#fff3cd' : 'white');
+            html += `<div class="fee-item" style="background:${bgColor}" data-id="${fee.feeStructureID}" data-name="${escapeHtml(fee.feeName)}" data-amount="${fee.amount}" data-due="${fee.dueAmount}" data-paid="${fee.totalPaid}" data-academic="${fee.academicYear}">
+                <div class="form-check">
+                    <input class="form-check-input fee-checkbox" type="checkbox" value="${fee.feeStructureID}" id="fee_${fee.feeStructureID}" ${fee.isFullyPaid ? 'disabled' : ''}>
+                    <label class="form-check-label" for="fee_${fee.feeStructureID}">
+                        <strong>${escapeHtml(fee.feeName)}</strong><br/>
+                        <small>Total: ₹${fee.amount.toFixed(2)} | Paid: ₹${fee.totalPaid.toFixed(2)} | <span class="${statusClass}">${statusText}</span></small>
+                    </label>
+                </div>
+            </div>`;
+        });
+        $('#feeList').html(html);
+        $('.fee-checkbox').change(updateSelectedFees);
+    }
+
+    function updateSelectedFees() {
+        selectedFees = [];
+        $('.fee-checkbox:checked').each(function() {
+            let parent = $(this).closest('.fee-item');
+            selectedFees.push({
+                feeStructureID: parseInt($(this).val()),
+                feeName: parent.data('name'),
+                amount: parent.data('amount'),
+                dueAmount: parent.data('due'),
+                academicYear: parent.data('academic')
+            });
+        });
+        updateSelectedSummary();
+    }
+
+    function updateSelectedSummary() {
+        if (selectedFees.length === 0) {
+            $('#selectedSummary').hide();
+            $('#txtPaymentAmount').attr('max', 0);
+            return;
+        }
+        let breakdownHtml = '', totalSelectedDue = 0;
+        selectedFees.forEach(fee => {
+            breakdownHtml += `<div class="row mb-1"><div class="col-7">${escapeHtml(fee.feeName)}</div><div class="col-5 text-end">Due: ₹${fee.dueAmount.toFixed(2)}</div></div>`;
+            totalSelectedDue += fee.dueAmount;
+        });
+        $('#selectedFeesBreakdown').html(breakdownHtml);
+        $('#totalSelectedDueAmount').text('₹ ' + totalSelectedDue.toFixed(2));
+        $('#selectedSummary').show();
+        $('#displayDueAmount').text('₹ ' + totalSelectedDue.toFixed(2));
+        calculateNetPayable();
+    }
+
+    $('#txtDiscount, #txtAdvance, #ddlMonthsToPay').on('keyup change', function() { calculateNetPayable(); });
+
+    function calculateNetPayable() {
+        let totalDue = 0;
+        selectedFees.forEach(fee => { totalDue += fee.dueAmount; });
+
+        let discount = parseFloat($('#txtDiscount').val()) || 0;
+        let advance = parseFloat($('#txtAdvance').val()) || 0;
+        let months = parseInt($('#ddlMonthsToPay').val()) || 1;
+
+        if (discount > totalDue) { discount = totalDue; $('#txtDiscount').val(discount); }
+
+        let afterDiscount = totalDue - discount;
+        $('#displayDiscount').text('- ₹ ' + discount.toFixed(2));
+        $('#displayAfterDiscount').text('₹ ' + afterDiscount.toFixed(2));
+
+        let monthlyPayment = afterDiscount / months;
+        $('#displayMonthlyPayment').text('₹ ' + monthlyPayment.toFixed(2));
+
+        let paymentAmount = 0;
+        let remainingDue = 0;
+
+        if (currentPaymentType === 'advance') {
+            paymentAmount = advance;
+            remainingDue = totalDue;
+        } else if (currentPaymentType === 'monthly') {
+            paymentAmount = monthlyPayment;
+            remainingDue = afterDiscount - paymentAmount;
+            $('#txtPaymentAmount').val(paymentAmount.toFixed(2));
+            $('#txtPaymentAmount').prop('readonly', true);
+        } else {
+            paymentAmount = parseFloat($('#txtPaymentAmount').val()) || 0;
+            if (paymentAmount > afterDiscount) { paymentAmount = afterDiscount; $('#txtPaymentAmount').val(paymentAmount); }
+            remainingDue = afterDiscount - paymentAmount;
         }
 
-        function displayPaymentHistory(payments) {
-            if (!payments || payments.length === 0) {
-                $('#paymentHistoryBody').html('<tr><td colspan="7" class="text-center">No payment history</td></tr>');
-                return;
-            }
+        $('#lblNetPayable').text('₹ ' + paymentAmount.toFixed(2));
+        $('#remainingDue').text('₹ ' + (remainingDue >= 0 ? remainingDue : 0).toFixed(2));
 
-            let html = '';
-            payments.forEach(function(payment) {
-                let statusBadge = payment.paymentStatus === 'Paid'
-                    ? '<span class="badge bg-success">Paid</span>'
-                    : '<span class="badge bg-warning">Partial</span>';
+        if (currentPaymentType === 'advance') {
+            $('#txtPaymentAmount').val(paymentAmount);
+            $('#txtPaymentAmount').prop('readonly', true);
+        } else if (currentPaymentType !== 'monthly') {
+            $('#txtPaymentAmount').prop('readonly', false);
+        }
+    }
 
-                html += `
-                    <tr>
-                        <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
-                        <td><strong>${payment.invoiceNo}</strong></td>
-                        <td>${escapeHtml(payment.feeName)}</td>
-                        <td>₹ ${payment.paidAmount.toFixed(2)}</td>
-                        <td>${payment.paymentMethod}</td>
-                        <td>${statusBadge}</td>
-                        <td>
-                            <button class="btn btn-sm btn-info btn-view-receipt" data-invoice="${payment.invoiceNo}">
-                                <i class="fas fa-print"></i> Receipt
-                            </button>
-                        </td>
-                    </tr>
-                `;
+    $('#txtPaymentAmount').on('keyup change', function() { if (currentPaymentType !== 'monthly') calculateNetPayable(); });
+
+    function displayPaymentHistory(payments) {
+        if (!payments || payments.length === 0) {
+            $('#paymentHistoryBody').html('<tr><td colspan="8" class="text-center">No payment history</td></tr>');
+            return;
+        }
+        let html = '';
+        payments.forEach(p => {
+            html += `<tr>
+                <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
+                <td><strong>${p.invoiceNo}</strong></td>
+                <td>${escapeHtml(p.feeName)}</td>
+                <td>₹ ${p.paidAmount.toFixed(2)}</td>
+                <td>₹ ${(p.discount || 0).toFixed(2)}</td>
+                <td>${p.paymentMethod}</td>
+                <td>${p.paymentStatus === 'Paid' ? '<span class="badge bg-success">Paid</span>' : '<span class="badge bg-warning">Partial</span>'}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning btn-edit-payment" data-id="${p.feePaymentID}" data-amount="${p.paidAmount}" data-discount="${p.discount}" data-method="${p.paymentMethod}"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn btn-sm btn-danger btn-delete-payment" data-id="${p.feePaymentID}"><i class="fas fa-trash"></i> Delete</button>
+                    <button class="btn btn-sm btn-info btn-view-receipt" data-invoice="${p.invoiceNo}"><i class="fas fa-print"></i> Receipt</button>
+                </td>
+            </tr>`;
+        });
+        $('#paymentHistoryBody').html(html);
+    }
+
+    // Process Payment
+    $('.btn-process-payment').click(function() {
+        let paymentAmount = parseFloat($('#txtPaymentAmount').val());
+        let discount = parseFloat($('#txtDiscount').val()) || 0;
+        let advance = parseFloat($('#txtAdvance').val()) || 0;
+        let months = parseInt($('#ddlMonthsToPay').val()) || 1;
+        let selectedFeeIds = [], selectedFeesData = [];
+
+        $('.fee-checkbox:checked').each(function() {
+            let parent = $(this).closest('.fee-item');
+            selectedFeeIds.push(parseInt($(this).val()));
+            selectedFeesData.push({
+                feeStructureID: parseInt($(this).val()),
+                feeName: parent.data('name'),
+                amount: parent.data('amount'),
+                dueAmount: parent.data('due'),
+                academicYear: parent.data('academic')
             });
-            $('#paymentHistoryBody').html(html);
+        });
+
+        if (selectedFeeIds.length === 0) { toastr.warning('Please select at least one fee to pay'); return; }
+        if (paymentAmount <= 0 && advance <= 0) { toastr.warning('Please enter payment amount'); return; }
+
+        let totalDue = selectedFeesData.reduce((sum, fee) => sum + fee.dueAmount, 0);
+        let afterDiscount = totalDue - discount;
+
+        let data = {
+            StudentID: selectedStudentId,
+            FeeStructureIds: selectedFeeIds,
+            SelectedFees: selectedFeesData,
+            PaidAmount: currentPaymentType === 'monthly' ? afterDiscount : paymentAmount,
+            Discount: discount,
+            AdvanceAmount: advance,
+            MonthsToPay: months,
+            PaymentType: currentPaymentType,
+            PaymentMethod: $('#ddlPaymentMethod').val(),
+            PaymentDate: $('#txtPaymentDate').val(),
+            InvoiceNo: $('#txtInvoiceNo').val(),
+            TotalDue: totalDue,
+            AfterDiscount: afterDiscount
+        };
+
+        $.ajax({
+            url: '/FeePayment/SaveBulkPayment',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(res) {
+                if (res.success) {
+                    toastr.success('Payment processed successfully!');
+                    showReceipt(res.invoiceNo);
+                    loadStudentDetails(selectedStudentId);
+                    loadTodayPayments();
+                    loadAllPayments();
+                    $('.fee-checkbox:checked').prop('checked', false);
+                    $('#txtPaymentAmount').val('');
+                    $('#txtDiscount').val('0');
+                    $('#txtAdvance').val('0');
+                    selectedFees = [];
+                    updateSelectedSummary();
+                } else { toastr.error(res.message); }
+            },
+            error: function(xhr) { toastr.error(xhr.responseJSON?.message || 'Error processing payment'); }
+        });
+    });
+
+    $('.btn-cancel-payment').click(function() {
+        $('#paymentSection').hide();
+        $('#searchStudent').val('');
+        $('#searchResults').hide();
+        selectedStudentId = 0;
+        selectedFees = [];
+    });
+
+    // Show Receipt
+    function showReceipt(invoiceNo) {
+        $.ajax({
+            url: '/FeePayment/GetReceiptByInvoice',
+            type: 'GET',
+            data: { invoiceNo: invoiceNo },
+            success: function(receipt) {
+                displayReceipt(receipt);
+                receiptModal.show();
+            },
+            error: () => toastr.error('Error loading receipt')
+        });
+    }
+
+    function displayReceipt(receipt) {
+        let feeDetailsHtml = '';
+        if (receipt.feeDetails && receipt.feeDetails.length > 0) {
+            receipt.feeDetails.forEach(f => {
+                feeDetailsHtml += `<tr>
+                    <td>${escapeHtml(f.feeName)}</td>
+                    <td class="text-end">₹ ${f.amount.toFixed(2)}</td>
+                    <td>${f.month || ''}</td>
+                    <td class="text-end">${f.discount > 0 ? '₹ ' + f.discount.toFixed(2) : '-'}</td>
+                    <td><span class="badge bg-success">${f.status}</span></td>
+                </tr>`;
+            });
         }
 
-        // Process Payment
-        $('.btn-process-payment').click(function() {
-            let paymentAmount = parseFloat($('#txtPaymentAmount').val());
-            let selectedFeeIds = [];
-            let selectedFeesData = [];
+        let receiptHtml = `<div class="receipt-card">
+            <div class="receipt-header">
+                <div class="receipt-school-name">🏫 School Management System</div>
+                <div class="receipt-title">Fee Payment Receipt</div>
+                <div class="receipt-divider"></div>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <p><strong>Invoice No:</strong> ${receipt.invoiceNo}</p>
+                    <p><strong>Date:</strong> ${new Date(receipt.paymentDate).toLocaleDateString()}</p>
+                    <p><strong>Payment Method:</strong> ${receipt.paymentMethod}</p>
+                </div>
+                <div class="col-6 text-end">
+                    <p><strong>Payment Type:</strong> ${receipt.paymentType || 'Normal'}</p>
+                    ${receipt.advanceAmount > 0 ? `<p><strong>Advance Amount:</strong> ₹ ${receipt.advanceAmount.toFixed(2)}</p>` : ''}
+                    ${receipt.totalDiscount > 0 ? `<p><strong>Total Discount:</strong> ₹ ${receipt.totalDiscount.toFixed(2)}</p>` : ''}
+                    ${receipt.monthsPaid > 1 ? `<p><strong>Months Paid:</strong> ${receipt.monthsPaid}</p>` : ''}
+                </div>
+            </div>
+            <div class="receipt-divider"></div>
+            <div class="row">
+                <div class="col-12">
+                    <h6>Student Information:</h6>
+                    <p><strong>Name:</strong> ${escapeHtml(receipt.studentName)}<br/>
+                    <strong>Roll No:</strong> ${receipt.rollNo || 'N/A'}<br/>
+                    <strong>Class:</strong> ${escapeHtml(receipt.className)}<br/>
+                    <strong>Father's Name:</strong> ${escapeHtml(receipt.fatherName) || 'N/A'}</p>
+                </div>
+            </div>
+            <div class="receipt-divider"></div>
+            <div class="row">
+                <div class="col-12">
+                    <h6>Fee Details:</h6>
+                    <table class="receipt-table">
+                        <thead>
+                            <tr><th>Fee Name</th><th>Amount</th><th>Month</th><th>Discount</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>${feeDetailsHtml}</tbody>
+                        <tfoot>
+                            <tr><th colspan="2">Total Paid</th><th colspan="3">₹ ${receipt.totalPaid.toFixed(2)}</th></tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="receipt-divider"></div>
+            <div class="receipt-footer">
+                <p><strong>✅ Thank you for your payment!</strong></p>
+                <small>This is a computer generated receipt</small>
+            </div>
+        </div>`;
 
-            $('.fee-checkbox:checked').each(function() {
-                let checkbox = $(this);
-                let parent = checkbox.closest('.fee-item');
-                selectedFeeIds.push(parseInt(checkbox.val()));
-                selectedFeesData.push({
-                    feeStructureID: parseInt(checkbox.val()),
-                    feeName: parent.data('name'),
-                    amount: parent.data('amount'),
-                    dueAmount: parent.data('due'),
-                    academicYear: parent.data('academic')
-                });
-            });
+        $('#receiptContent').html(receiptHtml);
+    }
 
-            if (selectedFeeIds.length === 0) {
-                toastr.warning('Please select at least one fee to pay');
-                return;
+    // Print Receipt
+    $('.btn-print-receipt').click(function() {
+        let printContents = $('#receiptContent').html();
+        let originalContents = document.body.innerHTML;
+        document.body.innerHTML = printContents;
+        window.print();
+        document.body.innerHTML = originalContents;
+    });
+
+    // Edit Payment
+    $(document).on('click', '.btn-edit-payment', function() {
+        $('#editPaymentId').val($(this).data('id'));
+        $('#editAmount').val($(this).data('amount'));
+        $('#editDiscount').val($(this).data('discount'));
+        $('#editMethod').val($(this).data('method'));
+        editModal.show();
+    });
+
+    $('.btn-update-payment').click(function() {
+        let data = {
+            FeePaymentID: $('#editPaymentId').val(),
+            PaidAmount: $('#editAmount').val(),
+            Discount: $('#editDiscount').val(),
+            PaymentMethod: $('#editMethod').val()
+        };
+
+        $.ajax({
+            url: '/FeePayment/EditPayment',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data),
+            success: function(res) {
+                if (res.success) {
+                    toastr.success('Payment updated successfully');
+                    editModal.hide();
+                    loadStudentDetails(selectedStudentId);
+                    loadTodayPayments();
+                    loadAllPayments();
+                } else { toastr.error(res.message); }
             }
+        });
+    });
 
-            if (!paymentAmount || paymentAmount <= 0) {
-                toastr.warning('Please enter payment amount');
-                return;
-            }
-
-            let totalDue = 0;
-            selectedFeesData.forEach(function(fee) {
-                totalDue += fee.dueAmount;
-            });
-
-            if (paymentAmount > totalDue) {
-                toastr.warning('Payment amount exceeds total due amount');
-                return;
-            }
-
-            let data = {
-                StudentID: selectedStudentId,
-                FeeStructureIds: selectedFeeIds,
-                SelectedFees: selectedFeesData,
-                PaidAmount: paymentAmount,
-                PaymentMethod: $('#ddlPaymentMethod').val(),
-                PaymentDate: $('#txtPaymentDate').val(),
-                InvoiceNo: $('#txtInvoiceNo').val(),
-                TotalDue: totalDue
-            };
-
+    // Delete Payment
+    $(document).on('click', '.btn-delete-payment', function() {
+        let id = $(this).data('id');
+        if (confirm('Are you sure you want to delete this payment? This action cannot be undone!')) {
             $.ajax({
-                url: '/FeePayment/SaveBulkPayment',
+                url: '/FeePayment/DeletePayment',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify(data),
+                data: JSON.stringify(id),
                 success: function(res) {
                     if (res.success) {
-                        toastr.success('Payment processed successfully!');
-                        loadAndShowReceipt(res.invoiceNo);
+                        toastr.success('Payment deleted successfully');
                         loadStudentDetails(selectedStudentId);
                         loadTodayPayments();
                         loadAllPayments();
-
-                        $('.fee-checkbox:checked').prop('checked', false);
-                        $('#txtPaymentAmount').val('');
-                        selectedFees = [];
-                    } else {
-                        toastr.error(res.message);
-                    }
-                },
-                error: function(xhr) {
-                    let errorMsg = 'Error processing payment';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    toastr.error(errorMsg);
-                }
-            });
-        });
-
-        $('.btn-cancel-payment').click(function() {
-            $('#paymentSection').hide();
-            $('#searchStudent').val('');
-            $('#searchResults').hide();
-            selectedStudentId = 0;
-            selectedFees = [];
-        });
-
-        function loadAndShowReceipt(invoiceNo) {
-            $.ajax({
-                url: '/FeePayment/GetReceiptByInvoice',
-                type: 'GET',
-                data: { invoiceNo: invoiceNo },
-                success: function(receipt) {
-                    displayReceipt(receipt);
-                },
-                error: function() {
-                    toastr.error('Error loading receipt');
+                    } else { toastr.error(res.message); }
                 }
             });
         }
+    });
 
-        function displayReceipt(receipt) {
-            let feeDetailsHtml = '';
-            receipt.feeDetails.forEach(function(fee) {
-                feeDetailsHtml += `
-                    <tr>
-                        <td>${escapeHtml(fee.feeName)}</td>
-                        <td class="text-end">₹ ${fee.amount.toFixed(2)}</td>
-                        <td><span class="badge bg-success">${fee.status}</span></td>
-                    </tr>
-                `;
-            });
-
-            let receiptHtml = `
-                <div class="receipt-card">
-                    <div class="text-center">
-                        <h3>🏫 School Management System</h3>
-                        <h5>Fee Payment Receipt</h5>
-                        <hr/>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <p><strong>Invoice No:</strong> <span style="font-size: 16px;">${receipt.invoiceNo}</span></p>
-                            <p><strong>Date:</strong> ${new Date(receipt.paymentDate).toLocaleDateString()}</p>
-                            <p><strong>Payment Method:</strong> ${receipt.paymentMethod}</p>
-                        </div>
-                    </div>
-
-                    <hr/>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <h6>Student Information:</h6>
-                            <p><strong>Name:</strong> ${escapeHtml(receipt.studentName)}<br/>
-                            <strong>Roll No:</strong> ${receipt.rollNo || 'N/A'}<br/>
-                            <strong>Class:</strong> ${escapeHtml(receipt.className)}<br/>
-                            <strong>Father's Name:</strong> ${escapeHtml(receipt.fatherName) || 'N/A'}</p>
-                        </div>
-                    </div>
-
-                    <hr/>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <h6>Fee Details:</h6>
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr><th>Fee Name</th><th>Amount</th><th>Status</th></tr>
-                                </thead>
-                                <tbody>
-                                    ${feeDetailsHtml}
-                                </tbody>
-                                <tfoot>
-                                    <td><th colspan="2">Total Paid</th><th class="text-end">₹ ${receipt.totalPaid.toFixed(2)}</th></tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-
-                    <hr/>
-
-                    <div class="text-center">
-                        <p><strong>✅ Thank you for your payment!</strong></p>
-                        <small>This is a computer generated receipt</small>
-                    </div>
-                </div>
-            `;
-
-            $('#receiptContent').html(receiptHtml);
-            $('#receiptModal').modal('show');
-        }
-
-        $('.btn-print-receipt').click(function() {
-            let printContents = $('#receiptContent').html();
-            let originalContents = document.body.innerHTML;
-            document.body.innerHTML = printContents;
-            window.print();
-            document.body.innerHTML = originalContents;
-            location.reload();
-        });
-
-        function loadTodayPayments() {
-            $.ajax({
-                url: '/FeePayment/GetTodayPayments',
-                type: 'GET',
-                success: function(payments) {
-                    let html = '';
-                    if (payments && payments.length > 0) {
-                        payments.forEach(function(payment) {
-                            let time = new Date(payment.paymentDate).toLocaleTimeString();
-                            html += `
-                                <tr class="today-row">
-                                    <td>${time}</td>
-                                    <td><strong>${payment.invoiceNo}</strong></td>
-                                    <td>${escapeHtml(payment.studentName)}</td>
-                                    <td>${payment.rollNo || '-'}</td>
-                                    <td>₹ ${payment.totalAmount.toFixed(2)}</td>
-                                    <td>${payment.paymentMethod}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info btn-view-receipt" data-invoice="${payment.invoiceNo}">
-                                            <i class="fas fa-print"></i> Receipt
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        html = '<tr><td colspan="7" class="text-center">No payments today</td></tr>';
-                    }
-                    $('#tblTodayPayments').html(html);
-                },
-                error: function() {
-                    toastr.error('Error loading today\'s payments');
+    function loadTodayPayments() {
+        $.ajax({
+            url: '/FeePayment/GetTodayPayments',
+            type: 'GET',
+            success: function(payments) {
+                let html = '';
+                if (payments && payments.length > 0) {
+                    payments.forEach(p => {
+                        html += `<tr class="today-row">
+                            <td>${new Date(p.paymentDate).toLocaleTimeString()}</td>
+                            <td><strong>${p.invoiceNo}</strong></td>
+                            <td>${escapeHtml(p.studentName)}</td>
+                            <td>${p.rollNo || '-'}</td>
+                            <td>₹ ${p.totalAmount.toFixed(2)}</td>
+                            <td>₹ ${(p.discount || 0).toFixed(2)}</td>
+                            <td>${p.paymentMethod}</td>
+                            <td><button class="btn btn-sm btn-info btn-view-receipt" data-invoice="${p.invoiceNo}"><i class="fas fa-print"></i> Receipt</button></td>
+                        </tr>`;
+                    });
+                } else {
+                    html = '<tr><td colspan="8" class="text-center">No payments today</td></tr>';
                 }
-            });
-        }
-
-        function loadAllPayments() {
-            $.ajax({
-                url: '/FeePayment/GetAllPayments',
-                type: 'GET',
-                success: function(payments) {
-                    let html = '';
-                    if (payments && payments.length > 0) {
-                        payments.forEach(function(payment) {
-                            let date = new Date(payment.paymentDate).toLocaleDateString();
-                            html += `
-                                <tr>
-                                    <td>${date}</td>
-                                    <td><strong>${payment.invoiceNo}</strong></td>
-                                    <td>${escapeHtml(payment.studentName)}</td>
-                                    <td>${payment.rollNo || '-'}</td>
-                                    <td>${escapeHtml(payment.className)}</td>
-                                    <td>₹ ${payment.totalAmount.toFixed(2)}</td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info btn-view-receipt" data-invoice="${payment.invoiceNo}">
-                                            <i class="fas fa-print"></i> Receipt
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        });
-                    } else {
-                        html = '<tr><td colspan="7" class="text-center">No payments found</td></tr>';
-                    }
-                    $('#tblAllPayments').html(html);
-                },
-                error: function() {
-                    toastr.error('Error loading payments history');
-                }
-            });
-        }
-
-        $(document).on('click', '.btn-view-receipt', function() {
-            let invoiceNo = $(this).data('invoice');
-            loadAndShowReceipt(invoiceNo);
+                $('#tblTodayPayments').html(html);
+            }
         });
+    }
 
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            });
-        }
-    </script>
-}
+    function loadAllPayments() {
+        $.ajax({
+            url: '/FeePayment/GetAllPayments',
+            type: 'GET',
+            success: function(payments) {
+                let html = '';
+                if (payments && payments.length > 0) {
+                    payments.forEach(p => {
+                        html += `<tr>
+                            <td>${new Date(p.paymentDate).toLocaleDateString()}</td>
+                            <td><strong>${p.invoiceNo}</strong></td>
+                            <td>${escapeHtml(p.studentName)}</td>
+                            <td>${p.rollNo || '-'}</td>
+                            <td>${escapeHtml(p.className)}</td>
+                            <td>₹ ${p.totalAmount.toFixed(2)}</td>
+                            <td>₹ ${(p.discount || 0).toFixed(2)}</td>
+                            <td><span class="badge bg-success">Paid</span></td>
+                            <td><button class="btn btn-sm btn-info btn-view-receipt" data-invoice="${p.invoiceNo}"><i class="fas fa-print"></i> Receipt</button></td>
+                        </tr>`;
+                    });
+                } else {
+                    html = '<tr><td colspan="9" class="text-center">No payments found</td></tr>';
+                }
+                $('#tblAllPayments').html(html);
+
+                if ($.fn.DataTable.isDataTable('#allPaymentsTable')) {
+                    $('#allPaymentsTable').DataTable().destroy();
+                }
+
+                dataTable = $('#allPaymentsTable').DataTable({
+                    dom: 'Bfrtip',
+                    buttons: [
+                        { extend: 'copy', className: 'btn-sm' },
+                        { extend: 'csv', className: 'btn-sm' },
+                        { extend: 'excel', className: 'btn-sm', title: 'Payments_History' },
+                        { extend: 'pdf', className: 'btn-sm', title: 'Payments_History' },
+                        { extend: 'print', className: 'btn-sm', title: 'Payments History Report' }
+                    ],
+                    pageLength: 10,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    language: { search: "Search:", lengthMenu: "Show _MENU_ entries", info: "Showing _START_ to _END_ of _TOTAL_ entries" },
+                    order: [[0, 'desc']]
+                });
+            }
+        });
+    }
+
+    $(document).on('click', '.btn-view-receipt', function() {
+        showReceipt($(this).data('invoice'));
+    });
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+</script>
