@@ -12,8 +12,8 @@ using SchoolledgerSystem.DAO;
 namespace SchoolledgerSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260611102142_feestructure")]
-    partial class feestructure
+    [Migration("20260616151919_createss")]
+    partial class createss
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -58,6 +58,75 @@ namespace SchoolledgerSystem.Migrations
                     b.HasKey("ClassTypeID");
 
                     b.ToTable("ClassTypes");
+                });
+
+            modelBuilder.Entity("SchoolledgerSystem.Models.FeePayment", b =>
+                {
+                    b.Property<int>("FeePaymentID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FeePaymentID"));
+
+                    b.Property<string>("AcademicYear")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Discount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("DueAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("FeeStructureID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Fine")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("InvoiceNo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StudentID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("FeePaymentID");
+
+                    b.HasIndex("FeeStructureID");
+
+                    b.HasIndex("StudentID");
+
+                    b.ToTable("FeePayments");
                 });
 
             modelBuilder.Entity("SchoolledgerSystem.Models.FeeStructure", b =>
@@ -149,65 +218,70 @@ namespace SchoolledgerSystem.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StudentID"));
 
                     b.Property<string>("Address")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("AdmissionDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("BloodGroup")
-                        .IsRequired()
+                    b.Property<int>("ClassTypeID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactNo")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Class")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("DateOfBirth")
+                    b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmergencyContact")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("FatherName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Gender")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
-                    b.Property<string>("MotherName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
-                    b.Property<string>("Phone")
-                        .IsRequired()
+                    b.Property<string>("MotherName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("RollNo")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StudentName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Section")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("StudentID");
 
+                    b.HasIndex("ClassTypeID");
+
                     b.ToTable("Students");
+                });
+
+            modelBuilder.Entity("SchoolledgerSystem.Models.FeePayment", b =>
+                {
+                    b.HasOne("SchoolledgerSystem.Models.FeeStructure", "FeeStructure")
+                        .WithMany()
+                        .HasForeignKey("FeeStructureID");
+
+                    b.HasOne("SchoolledgerSystem.Models.Student", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FeeStructure");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("SchoolledgerSystem.Models.FeeStructure", b =>
@@ -227,6 +301,17 @@ namespace SchoolledgerSystem.Migrations
                     b.Navigation("ClassType");
 
                     b.Navigation("FeeType");
+                });
+
+            modelBuilder.Entity("SchoolledgerSystem.Models.Student", b =>
+                {
+                    b.HasOne("SchoolledgerSystem.Models.ClassType", "ClassType")
+                        .WithMany()
+                        .HasForeignKey("ClassTypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClassType");
                 });
 #pragma warning restore 612, 618
         }

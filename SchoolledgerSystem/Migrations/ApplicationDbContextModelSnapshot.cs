@@ -78,7 +78,7 @@ namespace SchoolledgerSystem.Migrations
                     b.Property<decimal>("DueAmount")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("FeeStructureID")
+                    b.Property<int?>("FeeStructureID")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Fine")
@@ -113,6 +113,9 @@ namespace SchoolledgerSystem.Migrations
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("FeePaymentID");
 
@@ -265,9 +268,7 @@ namespace SchoolledgerSystem.Migrations
                 {
                     b.HasOne("SchoolledgerSystem.Models.FeeStructure", "FeeStructure")
                         .WithMany()
-                        .HasForeignKey("FeeStructureID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("FeeStructureID");
 
                     b.HasOne("SchoolledgerSystem.Models.Student", "Student")
                         .WithMany()

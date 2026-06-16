@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SchoolledgerSystem")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+13d4ba5eb49c0073b5add3d58dfc9a93dcc71e1d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a02825b8fe02e1f84174bcd62f14ec998c44bc4e")]
 [assembly: System.Reflection.AssemblyProductAttribute("SchoolledgerSystem")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SchoolledgerSystem")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

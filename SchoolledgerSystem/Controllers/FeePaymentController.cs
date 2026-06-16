@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolledgerSystem.DAO;
 using SchoolledgerSystem.Models;
-using System.Text;
 
 namespace SchoolledgerSystem.Controllers
 {
@@ -20,7 +19,7 @@ namespace SchoolledgerSystem.Controllers
             return View();
         }
 
-        // GET ALL PAYMENTS (Grouped by Invoice for History)
+        // GET ALL PAYMENTS
         [HttpGet]
         public async Task<IActionResult> GetAllPayments()
         {
@@ -40,6 +39,8 @@ namespace SchoolledgerSystem.Controllers
                         ClassName = g.First().Student.ClassType.TypeName,
                         TotalAmount = g.Sum(x => x.PaidAmount),
                         Discount = g.First().Discount,
+                        PaymentMethod = g.First().PaymentMethod,
+                        FeeCount = g.Count(),
                         DueAfter = g.First().DueAmount
                     })
                     .OrderByDescending(x => x.PaymentDate)
@@ -143,6 +144,7 @@ namespace SchoolledgerSystem.Controllers
                 var feesWithStatus = new List<object>();
                 decimal totalFeeAmount = 0;
                 decimal totalPaidOverall = 0;
+                decimal totalDueOverall = 0;
 
                 foreach (var fee in feeStructures)
                 {
@@ -166,10 +168,14 @@ namespace SchoolledgerSystem.Controllers
 
                     totalFeeAmount += fee.Amount;
                     totalPaidOverall += totalPaid;
+                    totalDueOverall += dueAmount;
                 }
 
-                var totalDueOverall = totalFeeAmount - totalPaidOverall;
                 if (totalDueOverall < 0) totalDueOverall = 0;
+
+                var advancePayments = await _context.FeePayments
+                    .Where(x => x.StudentID == studentId && x.FeeStructureID == null && !x.IsDeleted)
+                    .SumAsync(x => x.PaidAmount);
 
                 var paymentHistory = await _context.FeePayments
                     .Include(x => x.FeeStructure)
@@ -180,7 +186,7 @@ namespace SchoolledgerSystem.Controllers
                     {
                         x.FeePaymentID,
                         x.InvoiceNo,
-                        FeeName = x.FeeStructure.FeeType.FeeName,
+                        FeeName = x.FeeStructureID == null ? "Advance Payment" : x.FeeStructure.FeeType.FeeName,
                         x.PaidAmount,
                         x.Discount,
                         x.PaymentDate,
@@ -198,6 +204,7 @@ namespace SchoolledgerSystem.Controllers
                     totalFeeAmount = totalFeeAmount,
                     totalPaidOverall = totalPaidOverall,
                     totalDueOverall = totalDueOverall,
+                    advanceBalance = advancePayments,
                     paymentHistory = paymentHistory
                 });
             }
@@ -223,29 +230,98 @@ namespace SchoolledgerSystem.Controllers
                 if (model.PaidAmount <= 0 && model.AdvanceAmount <= 0)
                     return Json(new { success = false, message = "Please enter payment amount" });
 
-                // Generate invoice number
                 string invoiceNo = string.IsNullOrEmpty(model.InvoiceNo) ?
                     $"INV-{DateTime.Now:yyyyMMddHHmmss}" : model.InvoiceNo;
 
                 var payments = new List<FeePayment>();
                 decimal totalPaid = 0;
-                int monthsToPay = model.MonthsToPay > 0 ? model.MonthsToPay : 1;
-                decimal monthlyAmount = model.PaidAmount / monthsToPay;
-                decimal remainingAmount = model.PaidAmount;
+                decimal totalDiscountApplied = model.Discount;
 
-                // Handle Advance Payment
-                if (model.AdvanceAmount > 0)
+                // Get fee details with due amounts for selected fees
+                var feeDetails = new List<SelectedFeeModel>();
+                foreach (var feeId in model.FeeStructureIds)
+                {
+                    var fee = model.SelectedFees.FirstOrDefault(x => x.FeeStructureID == feeId);
+                    if (fee != null)
+                    {
+                        var totalPaidSoFar = await _context.FeePayments
+                            .Where(x => x.StudentID == model.StudentID && x.FeeStructureID == feeId && !x.IsDeleted)
+                            .SumAsync(x => x.PaidAmount);
+
+                        var due = fee.Amount - totalPaidSoFar;
+                        if (due < 0) due = 0;
+
+                        feeDetails.Add(new SelectedFeeModel
+                        {
+                            FeeStructureID = feeId,
+                            FeeName = fee.FeeName,
+                            Amount = fee.Amount,
+                            DueAmount = due,
+                            AcademicYear = fee.AcademicYear
+                        });
+                    }
+                }
+
+                decimal totalDue = feeDetails.Sum(x => x.DueAmount);
+                decimal afterDiscount = totalDue - totalDiscountApplied;
+                if (afterDiscount < 0) afterDiscount = 0;
+
+                // Check if paying more than due (advance)
+                bool isAdvancePayment = model.PaidAmount > afterDiscount;
+                decimal advanceAmount = isAdvancePayment ? (model.PaidAmount - afterDiscount) : 0;
+                decimal actualPayment = isAdvancePayment ? afterDiscount : model.PaidAmount;
+
+                // Save regular payments for EACH selected fee
+                decimal remaining = actualPayment;
+                foreach (var fee in feeDetails)
+                {
+                    if (fee.DueAmount > 0 && remaining > 0)
+                    {
+                        decimal amountToPay = Math.Min(remaining, fee.DueAmount);
+                        if (amountToPay > 0.01m)
+                        {
+                            // Calculate discount portion for this fee
+                            decimal discountPortion = totalDue > 0 ? (totalDiscountApplied * (amountToPay / totalDue)) : 0;
+
+                            var payment = new FeePayment
+                            {
+                                StudentID = model.StudentID,
+                                FeeStructureID = fee.FeeStructureID,
+                                TotalAmount = fee.Amount,
+                                PaidAmount = amountToPay,
+                                DueAmount = fee.DueAmount - amountToPay,
+                                Discount = discountPortion,
+                                Fine = 0,
+                                NetAmount = amountToPay,
+                                InvoiceNo = invoiceNo,
+                                PaymentMethod = model.PaymentMethod,
+                                PaymentDate = model.PaymentDate,
+                                AcademicYear = fee.AcademicYear,
+                                PaymentStatus = (fee.DueAmount - amountToPay) <= 0 ? "Paid" : "Partial",
+                                IsDeleted = false,
+                                CreatedDate = DateTime.Now
+                            };
+
+                            payments.Add(payment);
+                            remaining -= amountToPay;
+                            totalPaid += amountToPay;
+                        }
+                    }
+                }
+
+                // Save advance payment if any
+                if (advanceAmount > 0)
                 {
                     var advancePayment = new FeePayment
                     {
                         StudentID = model.StudentID,
-                        FeeStructureID = 0,
-                        TotalAmount = model.AdvanceAmount,
-                        PaidAmount = model.AdvanceAmount,
+                        FeeStructureID = null,
+                        TotalAmount = advanceAmount,
+                        PaidAmount = advanceAmount,
                         DueAmount = 0,
                         Discount = 0,
                         Fine = 0,
-                        NetAmount = model.AdvanceAmount,
+                        NetAmount = advanceAmount,
                         InvoiceNo = invoiceNo,
                         PaymentMethod = model.PaymentMethod,
                         PaymentDate = model.PaymentDate,
@@ -255,47 +331,7 @@ namespace SchoolledgerSystem.Controllers
                         CreatedDate = DateTime.Now
                     };
                     payments.Add(advancePayment);
-                    totalPaid += model.AdvanceAmount;
-                }
-
-                // Handle Normal/Monthly Payments
-                foreach (var feeId in model.FeeStructureIds)
-                {
-                    var feeDetail = model.SelectedFees.FirstOrDefault(x => x.FeeStructureID == feeId);
-                    if (feeDetail != null && feeDetail.DueAmount > 0)
-                    {
-                        for (int month = 1; month <= monthsToPay; month++)
-                        {
-                            decimal amountToPay = Math.Min(remainingAmount, monthlyAmount);
-                            if (amountToPay > 0.01m) // Only add if amount > 0
-                            {
-                                var payment = new FeePayment
-                                {
-                                    StudentID = model.StudentID,
-                                    FeeStructureID = feeId,
-                                    TotalAmount = feeDetail.Amount,
-                                    PaidAmount = amountToPay,
-                                    DueAmount = feeDetail.DueAmount - amountToPay,
-                                    Discount = model.Discount / monthsToPay,
-                                    Fine = 0,
-                                    NetAmount = amountToPay,
-                                    InvoiceNo = invoiceNo,
-                                    PaymentMethod = model.PaymentMethod,
-                                    PaymentDate = model.PaymentDate.AddMonths(month - 1),
-                                    AcademicYear = feeDetail.AcademicYear,
-                                    PaymentStatus = "Paid",
-                                    IsDeleted = false,
-                                    CreatedDate = DateTime.Now
-                                };
-
-                                payments.Add(payment);
-                                remainingAmount -= amountToPay;
-                                totalPaid += amountToPay;
-                            }
-                            if (remainingAmount <= 0.01m) break;
-                        }
-                    }
-                    if (remainingAmount <= 0.01m) break;
+                    totalPaid += advanceAmount;
                 }
 
                 if (payments.Any())
@@ -311,7 +347,13 @@ namespace SchoolledgerSystem.Controllers
                     success = true,
                     message = "Payment processed successfully",
                     invoiceNo = invoiceNo,
-                    totalPaid = totalPaid
+                    totalPaid = totalPaid,
+                    isAdvance = advanceAmount > 0,
+                    advanceAmount = advanceAmount,
+                    dueAfter = afterDiscount - actualPayment,
+                    totalPayments = payments.Count,
+                    paymentCount = payments.Count(x => x.FeeStructureID != null),
+                    discountApplied = totalDiscountApplied
                 });
             }
             catch (DbUpdateException ex)
@@ -332,20 +374,33 @@ namespace SchoolledgerSystem.Controllers
         {
             try
             {
-                var payment = await _context.FeePayments
-                    .FirstOrDefaultAsync(x => x.FeePaymentID == model.FeePaymentID && !x.IsDeleted);
+                var payments = await _context.FeePayments
+                    .Where(x => x.InvoiceNo == model.InvoiceNo && !x.IsDeleted)
+                    .ToListAsync();
 
-                if (payment == null)
+                if (payments == null || !payments.Any())
                     return Json(new { success = false, message = "Payment not found" });
 
-                // Update payment details
-                payment.PaidAmount = model.PaidAmount;
-                payment.Discount = model.Discount;
-                payment.PaymentMethod = model.PaymentMethod;
-                payment.NetAmount = model.PaidAmount;
-                payment.DueAmount = payment.TotalAmount - model.PaidAmount;
-                payment.PaymentStatus = payment.DueAmount <= 0 ? "Paid" : "Partial";
-                payment.UpdatedDate = DateTime.Now;
+                var regularPayments = payments.Where(x => x.FeeStructureID != null).ToList();
+                var advancePayment = payments.FirstOrDefault(x => x.FeeStructureID == null);
+
+                if (regularPayments.Any())
+                {
+                    foreach (var payment in regularPayments)
+                    {
+                        payment.PaidAmount = model.PaidAmount / regularPayments.Count;
+                        payment.Discount = model.Discount / regularPayments.Count;
+                        payment.PaymentMethod = model.PaymentMethod;
+                        payment.NetAmount = model.PaidAmount / regularPayments.Count;
+                        payment.DueAmount = payment.TotalAmount - payment.PaidAmount;
+                        payment.PaymentStatus = payment.DueAmount <= 0 ? "Paid" : "Partial";
+                    }
+                }
+
+                if (advancePayment != null)
+                {
+                    advancePayment.PaymentMethod = model.PaymentMethod;
+                }
 
                 await _context.SaveChangesAsync();
                 return Json(new { success = true, message = "Payment updated successfully" });
@@ -358,17 +413,22 @@ namespace SchoolledgerSystem.Controllers
 
         // DELETE PAYMENT
         [HttpPost]
-        public async Task<IActionResult> DeletePayment([FromBody] int id)
+        public async Task<IActionResult> DeletePayment([FromBody] string invoiceNo)
         {
             try
             {
-                var payment = await _context.FeePayments
-                    .FirstOrDefaultAsync(x => x.FeePaymentID == id && !x.IsDeleted);
+                var payments = await _context.FeePayments
+                    .Where(x => x.InvoiceNo == invoiceNo && !x.IsDeleted)
+                    .ToListAsync();
 
-                if (payment == null)
+                if (payments == null || !payments.Any())
                     return Json(new { success = false, message = "Payment not found" });
 
-                payment.IsDeleted = true;
+                foreach (var payment in payments)
+                {
+                    payment.IsDeleted = true;
+                }
+
                 await _context.SaveChangesAsync();
                 return Json(new { success = true, message = "Payment deleted successfully" });
             }
@@ -378,17 +438,20 @@ namespace SchoolledgerSystem.Controllers
             }
         }
 
-        // GET RECEIPT BY INVOICE NUMBER
+        // ============================================================
+        // FIXED: GET RECEIPT BY INVOICE - Shows all fee details with DISCOUNT
+        // ============================================================
         [HttpGet]
         public async Task<IActionResult> GetReceiptByInvoice(string invoiceNo)
         {
             try
             {
+                // Get all payments for this invoice with proper includes
                 var payments = await _context.FeePayments
                     .Include(x => x.Student)
                         .ThenInclude(s => s.ClassType)
                     .Include(x => x.FeeStructure)
-                        .ThenInclude(f => f.FeeType)
+                        .ThenInclude(f => f.FeeType)  // Load FeeType to get FeeName
                     .Where(x => x.InvoiceNo == invoiceNo && !x.IsDeleted)
                     .ToListAsync();
 
@@ -396,28 +459,56 @@ namespace SchoolledgerSystem.Controllers
                     return Json(new { success = false, message = "Receipt not found" });
 
                 var firstPayment = payments.First();
+
+                // Separate regular and advance payments
+                var regularPayments = payments.Where(x => x.FeeStructureID != null).ToList();
+                var advancePayments = payments.Where(x => x.FeeStructureID == null).ToList();
+
+                // Calculate amounts
+                var totalFeeAmount = regularPayments.Sum(x => x.TotalAmount);
+                var totalPaidAmount = regularPayments.Sum(x => x.PaidAmount);
+                var totalDiscountAmount = regularPayments.Sum(x => x.Discount); // THIS IS THE DISCOUNT
+                var advanceAmount = advancePayments.Sum(x => x.PaidAmount);
+                var totalDue = totalFeeAmount - totalPaidAmount;
+                if (totalDue < 0) totalDue = 0;
+
+                var nepaliDate = GetNepaliDateString(firstPayment.PaymentDate);
+
+                // Build receipt data with fee details and discount
                 var receipt = new
                 {
                     InvoiceNo = invoiceNo,
                     PaymentDate = firstPayment.PaymentDate,
-                    StudentName = firstPayment.Student.StudentName,
-                    RollNo = firstPayment.Student.RollNo,
-                    ClassName = firstPayment.Student.ClassType.TypeName,
-                    FatherName = firstPayment.Student.FatherName,
+                    NepaliDate = nepaliDate,
+                    StudentName = firstPayment.Student?.StudentName ?? "N/A",
+                    RollNo = firstPayment.Student?.RollNo ?? "N/A",
+                    ClassName = firstPayment.Student?.ClassType?.TypeName ?? "N/A",
+                    FatherName = firstPayment.Student?.FatherName ?? "N/A",
                     PaymentMethod = firstPayment.PaymentMethod,
                     AcademicYear = firstPayment.AcademicYear,
-                    TotalPaid = payments.Sum(x => x.PaidAmount),
-                    TotalDiscount = payments.Sum(x => x.Discount),
-                    AdvanceAmount = payments.Where(x => x.FeeStructureID == 0).Sum(x => x.PaidAmount),
-                    PaymentType = payments.Any(x => x.FeeStructureID == 0) ? "Advance" : "Normal",
-                    MonthsPaid = payments.Count(x => x.FeeStructureID != 0),
-                    FeeDetails = payments.Where(x => x.FeeStructureID != 0).Select(x => new
+
+                    // Amounts - INCLUDING DISCOUNT
+                    TotalFee = totalFeeAmount,
+                    TotalPaid = totalPaidAmount + advanceAmount,
+                    TotalDiscount = totalDiscountAmount, // DISCOUNT AMOUNT
+                    AdvanceAmount = advanceAmount,
+                    DueAmount = totalDue,
+
+                    PaymentType = advanceAmount > 0 ? "Advance" : "Normal",
+                    IsFullPaid = totalDue <= 0,
+
+                    // Fee Details - Each fee payment with discount
+                    FeeDetails = regularPayments.Select(x => new
                     {
-                        FeeName = x.FeeStructure.FeeType.FeeName,
-                        Amount = x.PaidAmount,
+                        FeeName = x.FeeStructure != null && x.FeeStructure.FeeType != null
+                            ? x.FeeStructure.FeeType.FeeName
+                            : "Unknown Fee",
+                        TotalAmount = x.TotalAmount,
+                        PaidAmount = x.PaidAmount,
+                        Discount = x.Discount, // INDIVIDUAL DISCOUNT PER FEE
                         Month = x.PaymentDate.ToString("MMMM yyyy"),
-                        Discount = x.Discount,
-                        Status = x.PaymentStatus
+                        Status = x.PaymentStatus,
+                        DueAfter = x.DueAmount
                     }).ToList()
                 };
 
@@ -459,8 +550,68 @@ namespace SchoolledgerSystem.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        // GET NEPALI DATE
+        [HttpGet]
+        public IActionResult GetNepaliDate()
+        {
+            try
+            {
+                var nepaliDate = GetNepaliDateString(DateTime.Now);
+                return Json(new { success = true, date = nepaliDate });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        private string GetNepaliDateString(DateTime englishDate)
+        {
+            string[] nepaliMonths = new string[]
+            {
+                "बैशाख", "जेठ", "असार", "साउन", "भदौ", "असोज",
+                "कार्तिक", "मंसिर", "पुस", "माघ", "फाल्गुन", "चैत"
+            };
+
+            string[] nepaliWeekdays = new string[]
+            {
+                "आइतबार", "सोमबार", "मंगलबार", "बुधबार", "बिहिबार", "शुक्रबार", "शनिबार"
+            };
+
+            int day = englishDate.Day;
+            int month = englishDate.Month;
+            int year = englishDate.Year;
+
+            int nepaliYear = year + 56;
+            int nepaliMonth = month + 8;
+            int nepaliDay = day + 15;
+
+            if (nepaliMonth > 12)
+            {
+                nepaliMonth -= 12;
+                nepaliYear += 1;
+            }
+
+            if (nepaliDay > 30)
+            {
+                nepaliDay -= 30;
+                nepaliMonth += 1;
+                if (nepaliMonth > 12)
+                {
+                    nepaliMonth = 1;
+                    nepaliYear += 1;
+                }
+            }
+
+            string weekday = nepaliWeekdays[(int)englishDate.DayOfWeek];
+            string monthName = nepaliMonths[nepaliMonth - 1];
+
+            return $"{weekday}, {nepaliDay} {monthName} {nepaliYear}";
+        }
     }
 
+    // Models
     public class BulkPaymentModel
     {
         public int StudentID { get; set; }
@@ -489,7 +640,7 @@ namespace SchoolledgerSystem.Controllers
 
     public class EditPaymentModel
     {
-        public int FeePaymentID { get; set; }
+        public string InvoiceNo { get; set; }
         public decimal PaidAmount { get; set; }
         public decimal Discount { get; set; }
         public string PaymentMethod { get; set; }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SchoolledgerSystem.DAO;
-using SchoolledgerSystem.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
