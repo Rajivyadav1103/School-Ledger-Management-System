@@ -439,7 +439,7 @@ namespace SchoolledgerSystem.Controllers
         }
 
         // ============================================================
-        // FIXED: GET RECEIPT BY INVOICE - Shows all fee details with DISCOUNT
+        // FIXED: GET RECEIPT BY INVOICE - No duplicate variable names
         // ============================================================
         [HttpGet]
         public async Task<IActionResult> GetReceiptByInvoice(string invoiceNo)
@@ -451,7 +451,7 @@ namespace SchoolledgerSystem.Controllers
                     .Include(x => x.Student)
                         .ThenInclude(s => s.ClassType)
                     .Include(x => x.FeeStructure)
-                        .ThenInclude(f => f.FeeType)  // Load FeeType to get FeeName
+                        .ThenInclude(f => f.FeeType)
                     .Where(x => x.InvoiceNo == invoiceNo && !x.IsDeleted)
                     .ToListAsync();
 
@@ -467,14 +467,66 @@ namespace SchoolledgerSystem.Controllers
                 // Calculate amounts
                 var totalFeeAmount = regularPayments.Sum(x => x.TotalAmount);
                 var totalPaidAmount = regularPayments.Sum(x => x.PaidAmount);
-                var totalDiscountAmount = regularPayments.Sum(x => x.Discount); // THIS IS THE DISCOUNT
+                var totalDiscountAmount = regularPayments.Sum(x => x.Discount);
                 var advanceAmount = advancePayments.Sum(x => x.PaidAmount);
                 var totalDue = totalFeeAmount - totalPaidAmount;
                 if (totalDue < 0) totalDue = 0;
 
+                // Calculate months paid
+                int monthsPaid = 1;
+                if (regularPayments.Any())
+                {
+                    var groupedByFee = regularPayments.GroupBy(x => x.FeeStructureID);
+                    if (groupedByFee.Any())
+                    {
+                        monthsPaid = groupedByFee.First().Count();
+                    }
+                }
+
                 var nepaliDate = GetNepaliDateString(firstPayment.PaymentDate);
 
-                // Build receipt data with fee details and discount
+                // Group fees by FeeStructureID to combine multiple months
+                var feeDetailsList = new List<object>();
+                var groupedFees = regularPayments.GroupBy(x => x.FeeStructureID);
+
+                foreach (var group in groupedFees)
+                {
+                    var first = group.First();
+                    var feeName = first.FeeStructure?.FeeType?.FeeName ?? "Unknown Fee";
+
+                    // Determine if this is a one-time fee
+                    bool isOneTime = false;
+                    string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development" };
+                    foreach (var name in oneTimeFeeNames)
+                    {
+                        if (feeName.Contains(name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            isOneTime = true;
+                            break;
+                        }
+                    }
+
+                    var totalAmount = group.Sum(x => x.TotalAmount);
+                    var totalPaid = group.Sum(x => x.PaidAmount);
+                    var totalDiscount = group.Sum(x => x.Discount);
+                    var totalDueAfter = group.Sum(x => x.DueAmount);
+                    var count = group.Count();
+
+                    feeDetailsList.Add(new
+                    {
+                        FeeName = feeName,
+                        TotalAmount = totalAmount,
+                        PaidAmount = totalPaid,
+                        Discount = totalDiscount,
+                        Month = isOneTime ? "One-Time" : $"{count} months",
+                        Status = totalDueAfter <= 0 ? "Paid" : "Partial",
+                        DueAfter = totalDueAfter,
+                        IsOneTime = isOneTime,
+                        Count = count,
+                        MonthlyAmount = isOneTime ? totalAmount : (totalAmount / count)
+                    });
+                }
+
                 var receipt = new
                 {
                     InvoiceNo = invoiceNo,
@@ -487,29 +539,19 @@ namespace SchoolledgerSystem.Controllers
                     PaymentMethod = firstPayment.PaymentMethod,
                     AcademicYear = firstPayment.AcademicYear,
 
-                    // Amounts - INCLUDING DISCOUNT
+                    // Amounts
                     TotalFee = totalFeeAmount,
                     TotalPaid = totalPaidAmount + advanceAmount,
-                    TotalDiscount = totalDiscountAmount, // DISCOUNT AMOUNT
+                    TotalDiscount = totalDiscountAmount,
                     AdvanceAmount = advanceAmount,
                     DueAmount = totalDue,
+                    MonthsPaid = monthsPaid,
 
                     PaymentType = advanceAmount > 0 ? "Advance" : "Normal",
                     IsFullPaid = totalDue <= 0,
 
-                    // Fee Details - Each fee payment with discount
-                    FeeDetails = regularPayments.Select(x => new
-                    {
-                        FeeName = x.FeeStructure != null && x.FeeStructure.FeeType != null
-                            ? x.FeeStructure.FeeType.FeeName
-                            : "Unknown Fee",
-                        TotalAmount = x.TotalAmount,
-                        PaidAmount = x.PaidAmount,
-                        Discount = x.Discount, // INDIVIDUAL DISCOUNT PER FEE
-                        Month = x.PaymentDate.ToString("MMMM yyyy"),
-                        Status = x.PaymentStatus,
-                        DueAfter = x.DueAmount
-                    }).ToList()
+                    // Fee Details - Grouped
+                    FeeDetails = feeDetailsList
                 };
 
                 return Json(receipt);

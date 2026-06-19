@@ -87,24 +87,6 @@
         border: 1px solid #bee5eb;
     }
 
-    .payment-type-btn {
-        margin: 5px;
-        padding: 8px 15px;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-        .payment-type-btn.active {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .payment-type-btn.inactive {
-            background-color: #6c757d;
-            color: white;
-        }
-
     .nepali-date-box {
         background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         padding: 10px 15px;
@@ -119,6 +101,23 @@
         font-size: 11px;
         margin-left: 5px;
     }
+
+    .fee-type-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        margin-left: 5px;
+    }
+
+        .fee-type-badge.one-time {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+        .fee-type-badge.monthly {
+            background-color: #28a745;
+            color: white;
+        }
 
     .receipt-header {
         text-align: center;
@@ -146,7 +145,8 @@
         margin: 10px 0;
     }
 
-        .receipt-table th, .receipt-table td {
+        .receipt-table th,
+        .receipt-table td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
@@ -154,6 +154,11 @@
 
         .receipt-table th {
             background-color: #f2f2f2;
+        }
+
+        .receipt-table .section-header {
+            background-color: #e9ecef;
+            font-weight: bold;
         }
 
     .receipt-footer {
@@ -168,6 +173,31 @@
         border-radius: 5px;
         font-size: 14px;
     }
+
+    .remaining-due-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+
+    .fee-section-title {
+        font-weight: bold;
+        padding: 5px 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+
+        .fee-section-title.one-time {
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .fee-section-title.monthly {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+        }
 </style>
 
 <link href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" rel="stylesheet">
@@ -231,9 +261,8 @@
                     <div class="col-md-12">
                         <div class="alert alert-info mb-0">
                             <strong><i class="fas fa-info-circle"></i> Note:</strong>
-                            Fees that are already paid can still be selected for new month payments.
-                            <span class="badge bg-success">✅ Paid</span> - Click to pay for next month.
-                            <span class="badge bg-info">📈 Advance</span> - Advance payments will auto-deduct from next month's bill.
+                            <span class="badge bg-info">One-Time Fee</span> - Not multiplied by months
+                            <span class="badge bg-success" style="margin-left:10px;">Monthly Fee</span> - Multiplied by months
                         </div>
                     </div>
                 </div>
@@ -276,43 +305,66 @@
                             <div id="selectedFeesBreakdown"></div>
                             <hr class="my-2">
                             <div class="row">
-                                <div class="col-6"><strong>Total Selected Due:</strong></div>
-                                <div class="col-6 text-end"><strong id="totalSelectedDueAmount">₹ 0</strong></div>
+                                <div class="col-6"><strong>One-Time Fees Total:</strong></div>
+                                <div class="col-6 text-end"><strong id="oneTimeFeesTotal">₹ 0</strong></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>Monthly Fees Total:</strong></div>
+                                <div class="col-6 text-end"><strong id="monthlyFeesTotal">₹ 0</strong></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>Months:</strong></div>
+                                <div class="col-6 text-end"><strong id="selectedMonths">0</strong></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>Monthly Total (× Months):</strong></div>
+                                <div class="col-6 text-end"><strong id="monthlyTotalWithMonths">₹ 0</strong></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6"><strong>Grand Total:</strong></div>
+                                <div class="col-6 text-end"><strong id="grandTotalSummary">₹ 0</strong></div>
                             </div>
                         </div>
 
+                        <!-- Manual Month Input -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Payment Duration</label>
-                            <select class="form-select" id="ddlMonthsToPay">
-                                <option value="1">1 Month</option>
-                                <option value="2">2 Months</option>
-                                <option value="3">3 Months</option>
-                                <option value="4">4 Months</option>
-                                <option value="5">5 Months</option>
-                                <option value="6">6 Months</option>
-                                <option value="12">12 Months (Yearly)</option>
-                            </select>
-                            <small class="text-muted">Select how many months you want to pay</small>
+                            <label class="form-label fw-bold">Number of Months <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="txtMonthsToPay" value="1" min="1" max="12" />
+                            <small class="text-muted">Enter how many months you want to pay (1-12)</small>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Payment Type</label>
-                            <div>
-                                <button type="button" class="btn btn-sm payment-type-btn active" data-type="normal">💰 Normal</button>
-                                <button type="button" class="btn btn-sm payment-type-btn inactive" data-type="advance">📈 Advance</button>
-                                <button type="button" class="btn btn-sm payment-type-btn inactive" data-type="monthly">📅 Monthly</button>
+                        <!-- Remaining Due Section -->
+                        <div class="remaining-due-box">
+                            <div class="row">
+                                <div class="col-8">
+                                    <strong>Remaining Due:</strong>
+                                    <span id="displayRemainingDueAmount" class="text-danger">₹ 0.00</span>
+                                    <small class="text-muted d-block">Previous outstanding balance</small>
+                                </div>
+                                <div class="col-4 text-end">
+                                    <button class="btn btn-sm btn-warning" id="btnAddRemainingDue">
+                                        <i class="fas fa-plus"></i> Add to Bill
+                                    </button>
+                                </div>
                             </div>
-                            <small class="text-muted" id="paymentTypeHint">Pay for current month</small>
+                            <div id="remainingDueSection" style="display: none;" class="mt-2">
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" id="txtRemainingDue" value="0" step="0.01" min="0" />
+                                    <button class="btn btn-danger" id="btnRemoveRemainingDue">
+                                        <i class="fas fa-times"></i> Remove
+                                    </button>
+                                </div>
+                                <small class="text-muted">Edit the remaining due amount if needed</small>
+                            </div>
                         </div>
 
+                        <!-- Discount Section -->
                         <div class="row">
-                            <div class="col-6 mb-3">
+                            <div class="col-12 mb-3">
                                 <label class="form-label fw-bold">Discount (₹)</label>
                                 <input type="number" class="form-control" id="txtDiscount" value="0" step="0.01" min="0" />
-                            </div>
-                            <div class="col-6 mb-3">
-                                <label class="form-label fw-bold">Advance Payment</label>
-                                <input type="number" class="form-control" id="txtAdvance" value="0" step="0.01" min="0" />
+                                <small class="text-muted">Apply discount to total amount</small>
                             </div>
                         </div>
 
@@ -343,15 +395,19 @@
                             </div>
                         </div>
 
+                        <!-- Payment Calculation Details -->
                         <div class="alert alert-info">
                             <strong>Payment Details:</strong><br />
-                            <div class="row"><div class="col-6">Total Due Amount:</div><div class="col-6 text-end" id="displayDueAmount">₹ 0</div></div>
-                            <div class="row"><div class="col-6">Discount Applied:</div><div class="col-6 text-end text-success" id="displayDiscount">- ₹ 0</div></div>
-                            <div class="row"><div class="col-6">Amount After Discount:</div><div class="col-6 text-end" id="displayAfterDiscount">₹ 0</div></div>
-                            <div class="row"><div class="col-6">Monthly Payment:</div><div class="col-6 text-end" id="displayMonthlyPayment">₹ 0</div></div>
+                            <div class="row"><div class="col-6">One-Time Fees:</div><div class="col-6 text-end" id="displayOneTimeFees">₹ 0</div></div>
+                            <div class="row"><div class="col-6">Monthly Fees:</div><div class="col-6 text-end" id="displayMonthlyFees">₹ 0</div></div>
+                            <div class="row"><div class="col-6">× Months:</div><div class="col-6 text-end" id="displayMonthsCount">0</div></div>
+                            <div class="row"><div class="col-6">Monthly Total (× Months):</div><div class="col-6 text-end" id="displayMonthlyTotal">₹ 0</div></div>
+                            <div class="row"><div class="col-6">Remaining Due:</div><div class="col-6 text-end text-warning" id="displayRemainingDue">₹ 0</div></div>
+                            <div class="row"><div class="col-6"><strong>Grand Total:</strong></div><div class="col-6 text-end"><strong id="displayGrandTotal">₹ 0</strong></div></div>
+                            <div class="row"><div class="col-6 text-success">Discount Applied:</div><div class="col-6 text-end text-success" id="displayDiscount">- ₹ 0</div></div>
                             <hr />
                             <div class="row"><div class="col-6"><strong>Total to Pay:</strong></div><div class="col-6 text-end"><strong id="lblNetPayable" style="font-size: 18px;">₹ 0</strong></div></div>
-                            <div class="row"><div class="col-6"><strong>Remaining Due:</strong></div><div class="col-6 text-end text-warning"><strong id="remainingDue">₹ 0</strong></div></div>
+                            <div class="row"><div class="col-6"><strong>Remaining Due After:</strong></div><div class="col-6 text-end text-warning"><strong id="remainingDueAfter">₹ 0</strong></div></div>
                         </div>
 
                         <div class="d-grid gap-2">
@@ -481,10 +537,14 @@
     let selectedStudentId = 0;
     let selectedFees = [];
     let dataTable;
-    let currentPaymentType = 'normal';
     let editModal;
     let receiptModal;
     let currentStudentData = null;
+    let isRemainingDueAdded = false;
+
+    // Define which fees are one-time vs monthly
+    const oneTimeFees = ['Admission Fee', 'Registration Fee', 'Exam Fee', 'Development Fee', 'Admission', 'Registration', 'Exam', 'Development'];
+    const monthlyFees = ['Tuition Fee', 'Bus Fee', 'Computer Fee', 'Library Fee', 'Sports Fee', 'Lab Fee', 'Tuition', 'Bus', 'Computer', 'Library', 'Sports', 'Lab'];
 
     $(document).ready(function() {
         let today = new Date();
@@ -499,28 +559,6 @@
         loadNepaliDate();
 
         toastr.options = { "closeButton": true, "progressBar": true, "positionClass": "toast-top-right", "timeOut": "3000" };
-
-        $('.payment-type-btn').click(function() {
-            $('.payment-type-btn').removeClass('active').addClass('inactive');
-            $(this).removeClass('inactive').addClass('active');
-            currentPaymentType = $(this).data('type');
-
-            if (currentPaymentType === 'advance') {
-                $('#paymentTypeHint').text('Advance payment will be credited to future months');
-                $('#txtAdvance').prop('readonly', false);
-            } else if (currentPaymentType === 'monthly') {
-                $('#paymentTypeHint').text('Pay in monthly installments');
-                $('#txtAdvance').prop('readonly', true);
-                $('#txtAdvance').val(0);
-            } else {
-                $('#paymentTypeHint').text('Pay for current month');
-                $('#txtAdvance').prop('readonly', true);
-                $('#txtAdvance').val(0);
-            }
-            calculateNetPayable();
-        });
-
-        $('#ddlMonthsToPay').change(function() { calculateNetPayable(); });
     });
 
     function loadNepaliDate() {
@@ -581,6 +619,9 @@
                     $('#totalPaid').text('₹ ' + res.totalPaidOverall.toFixed(2));
                     $('#totalDue').text('₹ ' + res.totalDueOverall.toFixed(2));
                     $('#advanceBalance').text('₹ ' + (res.advanceBalance || 0).toFixed(2));
+
+                    $('#displayRemainingDueAmount').text('₹ ' + res.totalDueOverall.toFixed(2));
+
                     displayFeeList(res.feeStructures);
                     displayPaymentHistory(res.paymentHistory);
                     $('#paymentSection').show();
@@ -604,24 +645,33 @@
             let statusText = fee.isFullyPaid ? '✅ Paid - Select for new month' : `Due: ₹${fee.dueAmount.toFixed(2)}`;
             let bgColor = fee.isFullyPaid ? '#d4edda' : 'white';
 
+            let feeType = oneTimeFees.some(f => fee.feeName.toLowerCase().includes(f.toLowerCase())) ? 'one-time' : 'monthly';
+            let feeTypeBadge = feeType === 'one-time' ?
+                '<span class="fee-type-badge one-time">One-Time</span>' :
+                '<span class="fee-type-badge monthly">Monthly</span>';
+
             html += `<div class="fee-item" style="background:${bgColor}"
                      data-id="${fee.feeStructureID}"
                      data-name="${escapeHtml(fee.feeName)}"
                      data-amount="${fee.amount}"
                      data-due="${fee.dueAmount}"
                      data-paid="${fee.totalPaid}"
-                     data-academic="${fee.academicYear}">
+                     data-academic="${fee.academicYear}"
+                     data-type="${feeType}">
                 <div class="form-check">
                     <input class="form-check-input fee-checkbox" type="checkbox"
                            value="${fee.feeStructureID}"
                            id="fee_${fee.feeStructureID}"
-                           data-due="${fee.dueAmount}">
+                           data-due="${fee.dueAmount}"
+                           data-type="${feeType}">
                     <label class="form-check-label" for="fee_${fee.feeStructureID}">
                         <strong>${escapeHtml(fee.feeName)}</strong>
                         ${fee.isFullyPaid ? '<span class="fee-paid-badge"><i class="fas fa-check"></i> Paid</span>' : ''}
+                        ${feeTypeBadge}
                         <br/>
-                        <small>Total: ₹${fee.amount.toFixed(2)} | Paid: ₹${fee.totalPaid.toFixed(2)} | <span class="${statusClass}">${statusText}</span></small>
-                        ${fee.isFullyPaid ? `<br/><small class="text-success">🔄 Select to pay for next month (₹${fee.amount.toFixed(2)})</small>` : ''}
+                        <small>Amount: ₹${fee.amount.toFixed(2)} | Paid: ₹${fee.totalPaid.toFixed(2)} | <span class="${statusClass}">${statusText}</span></small>
+                        ${fee.isFullyPaid ? `<br/><small class="text-success">🔄 Select to pay for next month</small>` : ''}
+                        ${feeType === 'one-time' ? `<br/><small class="text-info">📌 One-time fee (not multiplied by months)</small>` : `<br/><small class="text-success">📅 Monthly fee (× months)</small>`}
                     </label>
                 </div>
             </div>`;
@@ -645,125 +695,149 @@
         selectedFees = [];
         $('.fee-checkbox:checked').each(function() {
             let parent = $(this).closest('.fee-item');
-            let dueAmount = parent.data('due');
-            let fullAmount = parent.data('amount');
-
-            let amountToUse = dueAmount > 0 ? dueAmount : fullAmount;
-
             selectedFees.push({
                 feeStructureID: parseInt($(this).val()),
                 feeName: parent.data('name'),
-                amount: fullAmount,
-                dueAmount: amountToUse,
+                amount: parent.data('amount'),
+                dueAmount: parent.data('due'),
                 academicYear: parent.data('academic'),
-                isFullyPaid: dueAmount <= 0
+                isFullyPaid: parent.data('due') <= 0,
+                feeType: parent.data('type') || 'monthly'
             });
         });
         updateSelectedSummary();
+        calculateTotalAmount();
     }
 
     function updateSelectedSummary() {
         if (selectedFees.length === 0) {
             $('#selectedSummary').hide();
             $('#txtPaymentAmount').attr('max', 0);
-            $('#displayDueAmount').text('₹ 0');
-            $('#totalSelectedDueAmount').text('₹ 0');
-            $('#lblNetPayable').text('₹ 0');
-            $('#remainingDue').text('₹ 0');
-            $('#displayDiscount').text('- ₹ 0');
-            $('#displayAfterDiscount').text('₹ 0');
-            $('#displayMonthlyPayment').text('₹ 0');
             return;
         }
 
-        let breakdownHtml = '';
-        let totalSelectedDue = 0;
+        let oneTimeHtml = '';
+        let monthlyHtml = '';
+        let monthlyTotal = 0;
+        let oneTimeTotal = 0;
+        let months = parseInt($('#txtMonthsToPay').val()) || 1;
 
         selectedFees.forEach(fee => {
+            let isMonthly = fee.feeType === 'monthly';
             let status = fee.isFullyPaid ? '🔄 New Month' : 'Due';
-            breakdownHtml += `<div class="row mb-1">
-                <div class="col-7">${escapeHtml(fee.feeName)} ${fee.isFullyPaid ? '<span class="badge bg-success">New Month</span>' : ''}</div>
-                <div class="col-5 text-end">₹ ${fee.dueAmount.toFixed(2)}</div>
-            </div>`;
-            totalSelectedDue += fee.dueAmount;
+
+            if (isMonthly) {
+                monthlyHtml += `<div class="row mb-1">
+                    <div class="col-6">${escapeHtml(fee.feeName)} ${fee.isFullyPaid ? '<span class="badge bg-success">New Month</span>' : ''}</div>
+                    <div class="col-6 text-end">₹${fee.amount.toFixed(2)} × ${months} = ₹${(fee.amount * months).toFixed(2)}</div>
+                </div>`;
+                monthlyTotal += fee.amount;
+            } else {
+                oneTimeHtml += `<div class="row mb-1">
+                    <div class="col-6">${escapeHtml(fee.feeName)}</div>
+                    <div class="col-6 text-end">₹${fee.amount.toFixed(2)}</div>
+                </div>`;
+                oneTimeTotal += fee.amount;
+            }
         });
 
-        $('#selectedFeesBreakdown').html(breakdownHtml);
-        $('#totalSelectedDueAmount').text('₹ ' + totalSelectedDue.toFixed(2));
-        $('#selectedSummary').show();
-        $('#displayDueAmount').text('₹ ' + totalSelectedDue.toFixed(2));
+        let monthlyTotalWithMonths = monthlyTotal * months;
+        let grandTotal = monthlyTotalWithMonths + oneTimeTotal;
 
-        calculateNetPayable();
+        let breakdownHtml = '';
+        if (oneTimeHtml) {
+            breakdownHtml += `<div class="fee-section-title one-time">📌 One-Time Fees</div>${oneTimeHtml}`;
+        }
+        if (monthlyHtml) {
+            breakdownHtml += `<div class="fee-section-title monthly">📅 Monthly Fees (× ${months} months)</div>${monthlyHtml}`;
+        }
+
+        $('#selectedFeesBreakdown').html(breakdownHtml);
+        $('#oneTimeFeesTotal').text('₹ ' + oneTimeTotal.toFixed(2));
+        $('#monthlyFeesTotal').text('₹ ' + monthlyTotal.toFixed(2));
+        $('#selectedMonths').text(months);
+        $('#monthlyTotalWithMonths').text('₹ ' + monthlyTotalWithMonths.toFixed(2));
+        $('#grandTotalSummary').text('₹ ' + grandTotal.toFixed(2));
+        $('#selectedSummary').show();
+
+        calculateTotalAmount();
     }
 
-    $('#txtDiscount, #txtAdvance, #ddlMonthsToPay').on('keyup change', function() {
-        calculateNetPayable();
+    function calculateTotalAmount() {
+        let monthlyTotal = 0;
+        let oneTimeTotal = 0;
+        let months = parseInt($('#txtMonthsToPay').val()) || 1;
+        let remainingDue = parseFloat($('#txtRemainingDue').val()) || 0;
+        let discount = parseFloat($('#txtDiscount').val()) || 0;
+
+        selectedFees.forEach(fee => {
+            if (fee.feeType === 'monthly') {
+                monthlyTotal += fee.amount;
+            } else {
+                oneTimeTotal += fee.amount;
+            }
+        });
+
+        let monthlyTotalWithMonths = monthlyTotal * months;
+        let grandTotal = monthlyTotalWithMonths + oneTimeTotal + remainingDue;
+        let afterDiscount = grandTotal - discount;
+        if (afterDiscount < 0) afterDiscount = 0;
+
+        $('#displayOneTimeFees').text('₹ ' + oneTimeTotal.toFixed(2));
+        $('#displayMonthlyFees').text('₹ ' + monthlyTotal.toFixed(2));
+        $('#displayMonthsCount').text(months);
+        $('#displayMonthlyTotal').text('₹ ' + monthlyTotalWithMonths.toFixed(2));
+        $('#displayRemainingDue').text('₹ ' + remainingDue.toFixed(2));
+        $('#displayGrandTotal').text('₹ ' + grandTotal.toFixed(2));
+        $('#displayDiscount').text('- ₹ ' + discount.toFixed(2));
+        $('#lblNetPayable').text('₹ ' + afterDiscount.toFixed(2));
+
+        $('#txtPaymentAmount').attr('max', afterDiscount);
+        $('#txtPaymentAmount').attr('placeholder', `Max: ₹${afterDiscount.toFixed(2)}`);
+
+        let paymentAmount = parseFloat($('#txtPaymentAmount').val()) || 0;
+        let remainingAfter = afterDiscount - paymentAmount;
+        if (remainingAfter < 0) remainingAfter = 0;
+        $('#remainingDueAfter').text('₹ ' + remainingAfter.toFixed(2));
+    }
+
+    $('#txtMonthsToPay, #txtDiscount, #txtRemainingDue').on('keyup change', function() {
+        calculateTotalAmount();
+        updateSelectedSummary();
     });
 
-    function calculateNetPayable() {
-        let totalDue = 0;
-        selectedFees.forEach(fee => { totalDue += fee.dueAmount; });
-
-        let discount = parseFloat($('#txtDiscount').val()) || 0;
-        let advance = parseFloat($('#txtAdvance').val()) || 0;
-        let months = parseInt($('#ddlMonthsToPay').val()) || 1;
-
-        if (selectedFees.length === 0) {
-            $('#lblNetPayable').text('₹ 0');
-            $('#remainingDue').text('₹ 0');
-            $('#displayDiscount').text('- ₹ 0');
-            $('#displayAfterDiscount').text('₹ 0');
-            $('#displayMonthlyPayment').text('₹ 0');
-            return;
-        }
-
-        if (discount > totalDue) {
-            discount = totalDue;
-            $('#txtDiscount').val(discount);
-        }
-
-        let afterDiscount = totalDue - discount;
-        $('#displayDiscount').text('- ₹ ' + discount.toFixed(2));
-        $('#displayAfterDiscount').text('₹ ' + afterDiscount.toFixed(2));
-
-        let monthlyPayment = afterDiscount / months;
-        $('#displayMonthlyPayment').text('₹ ' + monthlyPayment.toFixed(2));
-
-        let paymentAmount = 0;
-        let remainingDue = 0;
-
-        if (currentPaymentType === 'advance') {
-            paymentAmount = advance;
-            remainingDue = totalDue;
-        } else if (currentPaymentType === 'monthly') {
-            paymentAmount = monthlyPayment;
-            remainingDue = afterDiscount - paymentAmount;
-            $('#txtPaymentAmount').val(paymentAmount.toFixed(2));
-            $('#txtPaymentAmount').prop('readonly', true);
+    $('#btnAddRemainingDue').click(function() {
+        let dueAmount = parseFloat($('#displayRemainingDueAmount').text().replace('₹ ', ''));
+        if (dueAmount > 0) {
+            $('#txtRemainingDue').val(dueAmount);
+            $('#remainingDueSection').show();
+            isRemainingDueAdded = true;
+            calculateTotalAmount();
+            toastr.success('Remaining due added to bill');
         } else {
-            paymentAmount = parseFloat($('#txtPaymentAmount').val()) || 0;
-            if (paymentAmount > afterDiscount) {
-                paymentAmount = afterDiscount;
-                $('#txtPaymentAmount').val(paymentAmount);
-            }
-            remainingDue = afterDiscount - paymentAmount;
+            toastr.info('No remaining due to add');
         }
+    });
 
-        $('#lblNetPayable').text('₹ ' + paymentAmount.toFixed(2));
-        $('#remainingDue').text('₹ ' + (remainingDue >= 0 ? remainingDue : 0).toFixed(2));
-
-        if (currentPaymentType === 'advance') {
-            $('#txtPaymentAmount').val(paymentAmount);
-            $('#txtPaymentAmount').prop('readonly', true);
-        } else if (currentPaymentType !== 'monthly') {
-            $('#txtPaymentAmount').prop('readonly', false);
-        }
-    }
+    $('#btnRemoveRemainingDue').click(function() {
+        $('#txtRemainingDue').val(0);
+        $('#remainingDueSection').hide();
+        isRemainingDueAdded = false;
+        calculateTotalAmount();
+        toastr.info('Remaining due removed from bill');
+    });
 
     $('#txtPaymentAmount').on('keyup change', function() {
-        if (currentPaymentType !== 'monthly') {
-            calculateNetPayable();
+        let paymentAmount = parseFloat($(this).val()) || 0;
+        let maxDue = parseFloat($(this).attr('max')) || 0;
+        if (paymentAmount > maxDue && maxDue > 0) {
+            $(this).val(maxDue);
+            paymentAmount = maxDue;
         }
+        let afterDiscount = parseFloat($('#lblNetPayable').text().replace('₹ ', '')) || 0;
+        let remainingAfter = afterDiscount - paymentAmount;
+        if (remainingAfter < 0) remainingAfter = 0;
+        $('#remainingDueAfter').text('₹ ' + remainingAfter.toFixed(2));
     });
 
     function displayPaymentHistory(payments) {
@@ -798,62 +872,70 @@
         $('#paymentHistoryBody').html(html);
     }
 
-    // ============================================================
-    // FIXED: Process Payment - Sends correct data to server
-    // ============================================================
     $('.btn-process-payment').click(function() {
         let paymentAmount = parseFloat($('#txtPaymentAmount').val());
         let discount = parseFloat($('#txtDiscount').val()) || 0;
-        let advance = parseFloat($('#txtAdvance').val()) || 0;
-        let months = parseInt($('#ddlMonthsToPay').val()) || 1;
+        let months = parseInt($('#txtMonthsToPay').val()) || 1;
+        let remainingDue = parseFloat($('#txtRemainingDue').val()) || 0;
         let selectedFeeIds = [];
         let selectedFeesData = [];
 
-        // Get selected fees data
         $('.fee-checkbox:checked').each(function() {
             let parent = $(this).closest('.fee-item');
-            let dueAmount = parent.data('due');
-            let fullAmount = parent.data('amount');
-            let amountToUse = dueAmount > 0 ? dueAmount : fullAmount;
-
+            let feeType = parent.data('type') || 'monthly';
             selectedFeeIds.push(parseInt($(this).val()));
             selectedFeesData.push({
                 feeStructureID: parseInt($(this).val()),
                 feeName: parent.data('name'),
-                amount: fullAmount,
-                dueAmount: amountToUse,
-                academicYear: parent.data('academic')
+                amount: parent.data('amount'),
+                dueAmount: parent.data('due'),
+                academicYear: parent.data('academic'),
+                feeType: feeType
             });
         });
 
         if (selectedFeeIds.length === 0) { toastr.warning('Please select at least one fee to pay'); return; }
-        if (paymentAmount <= 0 && advance <= 0) { toastr.warning('Please enter payment amount'); return; }
+        if (!paymentAmount || paymentAmount <= 0) { toastr.warning('Please enter payment amount'); return; }
 
-        let totalDue = selectedFeesData.reduce((sum, fee) => sum + fee.dueAmount, 0);
-        let afterDiscount = totalDue - discount;
+        let monthlyTotal = 0;
+        let oneTimeTotal = 0;
+        selectedFeesData.forEach(fee => {
+            if (fee.feeType === 'monthly') {
+                monthlyTotal += fee.amount;
+            } else {
+                oneTimeTotal += fee.amount;
+            }
+        });
 
-        if (paymentAmount > afterDiscount && currentPaymentType !== 'advance' && currentPaymentType !== 'monthly') {
+        let monthlyTotalWithMonths = monthlyTotal * months;
+        let grandTotal = monthlyTotalWithMonths + oneTimeTotal + remainingDue;
+        let afterDiscount = grandTotal - discount;
+        if (afterDiscount < 0) afterDiscount = 0;
+
+        if (paymentAmount > afterDiscount) {
             toastr.warning(`Payment amount cannot exceed ₹${afterDiscount.toFixed(2)}`);
             return;
         }
 
         let data = {
             StudentID: selectedStudentId,
-            FeeStructureIds: selectedFeeIds, // Send all selected fee IDs
-            SelectedFees: selectedFeesData, // Send full fee data with amounts
-            PaidAmount: currentPaymentType === 'monthly' ? afterDiscount : paymentAmount,
+            FeeStructureIds: selectedFeeIds,
+            SelectedFees: selectedFeesData,
+            PaidAmount: paymentAmount,
             Discount: discount,
-            AdvanceAmount: advance,
             MonthsToPay: months,
-            PaymentType: currentPaymentType,
+            RemainingDue: remainingDue,
             PaymentMethod: $('#ddlPaymentMethod').val(),
             PaymentDate: $('#txtPaymentDate').val(),
             InvoiceNo: $('#txtInvoiceNo').val(),
-            TotalDue: totalDue,
-            AfterDiscount: afterDiscount
+            TotalDue: grandTotal,
+            AfterDiscount: afterDiscount,
+            MonthlyTotal: monthlyTotal,
+            OneTimeTotal: oneTimeTotal,
+            MonthlyTotalWithMonths: monthlyTotalWithMonths
         };
 
-        console.log('Sending data:', data); // Debug
+        console.log('Sending data:', data);
 
         $.ajax({
             url: '/FeePayment/SaveBulkPayment',
@@ -863,10 +945,6 @@
             success: function(res) {
                 if (res.success) {
                     toastr.success('Payment processed successfully!');
-                    if (res.isAdvance) {
-                        toastr.info(`Advance payment of ₹${res.advanceAmount.toFixed(2)} will be credited to next month`);
-                    }
-                    // Show receipt and refresh data
                     showReceipt(res.invoiceNo);
                     loadStudentDetails(selectedStudentId);
                     loadTodayPayments();
@@ -874,7 +952,9 @@
                     $('.fee-checkbox:checked').prop('checked', false);
                     $('#txtPaymentAmount').val('');
                     $('#txtDiscount').val('0');
-                    $('#txtAdvance').val('0');
+                    $('#txtRemainingDue').val('0');
+                    $('#remainingDueSection').hide();
+                    isRemainingDueAdded = false;
                     selectedFees = [];
                     updateSelectedSummary();
                     updateFeeCount();
@@ -912,24 +992,25 @@
         });
     }
 
-    // Display Receipt
+    // Display Receipt with separate sections for One-Time and Monthly fees
     function displayReceipt(receipt) {
-        console.log('Receipt Data:', receipt); // Debug
+        console.log('Receipt Data:', receipt);
 
-        let feeDetailsHtml = '';
-        let subtotal = 0;
+        let oneTimeHtml = '';
+        let monthlyHtml = '';
+        let oneTimeTotal = 0;
+        let monthlyTotal = 0;
         let totalDiscount = 0;
 
-        // Build fee details rows
         if (receipt.feeDetails && receipt.feeDetails.length > 0) {
             receipt.feeDetails.forEach(function(f) {
                 let statusClass = f.dueAfter <= 0 ? 'bg-success' : 'bg-warning';
                 let statusText = f.dueAfter <= 0 ? 'Paid' : 'Partial';
+                let isMonthly = f.isMonthly !== undefined ? f.isMonthly : true;
 
-                subtotal += parseFloat(f.totalAmount) || 0;
                 totalDiscount += parseFloat(f.discount) || 0;
 
-                feeDetailsHtml += `<tr>
+                let rowHtml = `<tr>
                     <td>${escapeHtml(f.feeName) || 'N/A'}</td>
                     <td style="text-align:right;">₹ ${(parseFloat(f.totalAmount) || 0).toFixed(2)}</td>
                     <td style="text-align:right;">₹ ${(parseFloat(f.paidAmount) || 0).toFixed(2)}</td>
@@ -937,17 +1018,26 @@
                     <td style="text-align:center;"><span class="badge ${statusClass}">${statusText}</span></td>
                     <td style="text-align:right;">₹ ${(parseFloat(f.dueAfter) || 0).toFixed(2)}</td>
                 </tr>`;
+
+                if (f.feeName && (f.feeName.toLowerCase().includes('admission') || f.feeName.toLowerCase().includes('registration') || f.feeName.toLowerCase().includes('exam') || f.feeName.toLowerCase().includes('development'))) {
+                    oneTimeHtml += rowHtml;
+                    oneTimeTotal += parseFloat(f.totalAmount) || 0;
+                } else {
+                    monthlyHtml += rowHtml;
+                    monthlyTotal += parseFloat(f.totalAmount) || 0;
+                }
             });
         } else {
-            feeDetailsHtml = `<tr><td colspan="6" style="text-align:center;color:#999;">No fee details available</td></tr>`;
+            let noDataRow = `<tr><td colspan="6" style="text-align:center;color:#999;">No fee details available</td></tr>`;
+            oneTimeHtml = noDataRow;
+            monthlyHtml = '';
         }
 
-        // Get values from receipt
-        let totalFee = parseFloat(receipt.totalFee) || subtotal;
         let totalPaid = parseFloat(receipt.totalPaid) || 0;
         let totalDisc = parseFloat(receipt.totalDiscount) || totalDiscount;
         let advanceAmt = parseFloat(receipt.advanceAmount) || 0;
         let dueAmt = parseFloat(receipt.dueAmount) || 0;
+        let monthsPaid = receipt.monthsPaid || 1;
 
         let receiptHtml = `<div class="receipt-card">
             <div class="receipt-header">
@@ -967,11 +1057,7 @@
                         <strong><i class="fas fa-calendar-alt"></i> Nepali Date:</strong><br/>
                         ${receipt.nepaliDate || 'N/A'}
                     </div>
-                    <p class="mt-2"><strong>Payment Type:</strong>
-                        <span class="badge ${receipt.paymentType === 'Advance' ? 'bg-info' : 'bg-primary'}">
-                            ${receipt.paymentType || 'Normal'}
-                        </span>
-                    </p>
+                    <p class="mt-2"><strong>Months Paid:</strong> ${monthsPaid}</p>
                     ${advanceAmt > 0 ? `<p><strong>Advance Amount:</strong> <span class="text-info">₹ ${advanceAmt.toFixed(2)}</span></p>` : ''}
                 </div>
             </div>
@@ -997,20 +1083,23 @@
                         <thead>
                             <tr>
                                 <th>Fee Name</th>
-                                <th style="text-align:right;">Total Amount</th>
-                                <th style="text-align:right;">Paid Amount</th>
+                                <th style="text-align:right;">Amount</th>
+                                <th style="text-align:right;">Paid</th>
                                 <th style="text-align:right;">Discount</th>
                                 <th style="text-align:center;">Status</th>
                                 <th style="text-align:right;">Due After</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${feeDetailsHtml}
+                            ${oneTimeHtml ? `<tr class="section-header"><td colspan="6" style="text-align:center;background-color:#d1ecf1;">📌 One-Time Fees</td></tr>` : ''}
+                            ${oneTimeHtml}
+                            ${monthlyHtml ? `<tr class="section-header"><td colspan="6" style="text-align:center;background-color:#d4edda;">📅 Monthly Fees (× ${monthsPaid} months)</td></tr>` : ''}
+                            ${monthlyHtml}
                         </tbody>
                         <tfoot>
                             <tr style="background-color: #f8f9fa;">
                                 <th colspan="5" style="text-align:right;">Subtotal</th>
-                                <th style="text-align:right;">₹ ${totalFee.toFixed(2)}</th>
+                                <th style="text-align:right;">₹ ${(receipt.totalFee || 0).toFixed(2)}</th>
                             </tr>
                             ${totalDisc > 0 ? `<tr style="background-color: #f8f9fa;">
                                 <th colspan="5" style="text-align:right;color:green;">Total Discount</th>
