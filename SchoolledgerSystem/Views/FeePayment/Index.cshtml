@@ -50,14 +50,6 @@
             background-color: #e3f2fd;
         }
 
-    .summary-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
     .status-paid {
         color: green;
         font-weight: bold;
@@ -159,6 +151,7 @@
         .receipt-table .section-header {
             background-color: #e9ecef;
             font-weight: bold;
+            text-align: center;
         }
 
     .receipt-footer {
@@ -197,6 +190,34 @@
         .fee-section-title.monthly {
             background-color: #d4edda;
             border-left: 4px solid #28a745;
+        }
+
+    .receipt-summary-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 10px 0;
+    }
+
+        .receipt-summary-box .row {
+            padding: 3px 0;
+        }
+
+        .receipt-summary-box .label {
+            font-weight: 600;
+        }
+
+        .receipt-summary-box .value {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .receipt-summary-box .total {
+            font-size: 16px;
+            border-top: 2px solid #333;
+            padding-top: 8px;
+            margin-top: 5px;
         }
 </style>
 
@@ -542,9 +563,8 @@
     let currentStudentData = null;
     let isRemainingDueAdded = false;
 
-    // Define which fees are one-time vs monthly
-    const oneTimeFees = ['Admission Fee', 'Registration Fee', 'Exam Fee', 'Development Fee', 'Admission', 'Registration', 'Exam', 'Development'];
-    const monthlyFees = ['Tuition Fee', 'Bus Fee', 'Computer Fee', 'Library Fee', 'Sports Fee', 'Lab Fee', 'Tuition', 'Bus', 'Computer', 'Library', 'Sports', 'Lab'];
+    // Define one-time fee names
+    const oneTimeFeeNames = ['Admission', 'Registration', 'Exam', 'Development', 'Annual'];
 
     $(document).ready(function() {
         let today = new Date();
@@ -573,6 +593,7 @@
         });
     }
 
+    // Search Students
     $('#btnSearch').click(function() {
         let searchTerm = $('#searchStudent').val().trim();
         if (searchTerm.length < 2) { toastr.warning('Please enter at least 2 characters'); return; }
@@ -645,7 +666,8 @@
             let statusText = fee.isFullyPaid ? '✅ Paid - Select for new month' : `Due: ₹${fee.dueAmount.toFixed(2)}`;
             let bgColor = fee.isFullyPaid ? '#d4edda' : 'white';
 
-            let feeType = oneTimeFees.some(f => fee.feeName.toLowerCase().includes(f.toLowerCase())) ? 'one-time' : 'monthly';
+            let isOneTime = oneTimeFeeNames.some(f => fee.feeName.toLowerCase().includes(f.toLowerCase()));
+            let feeType = isOneTime ? 'one-time' : 'monthly';
             let feeTypeBadge = feeType === 'one-time' ?
                 '<span class="fee-type-badge one-time">One-Time</span>' :
                 '<span class="fee-type-badge monthly">Monthly</span>';
@@ -872,6 +894,7 @@
         $('#paymentHistoryBody').html(html);
     }
 
+    // Process Payment
     $('.btn-process-payment').click(function() {
         let paymentAmount = parseFloat($('#txtPaymentAmount').val());
         let discount = parseFloat($('#txtDiscount').val()) || 0;
@@ -992,7 +1015,12 @@
         });
     }
 
-    // Display Receipt with separate sections for One-Time and Monthly fees
+    // ============================================================
+    // FIXED: Display Receipt with full payment details summary
+    // ============================================================
+       // ============================================================
+    // FIXED: Display Receipt with correct fee details
+    // ============================================================
     function displayReceipt(receipt) {
         console.log('Receipt Data:', receipt);
 
@@ -1006,7 +1034,6 @@
             receipt.feeDetails.forEach(function(f) {
                 let statusClass = f.dueAfter <= 0 ? 'bg-success' : 'bg-warning';
                 let statusText = f.dueAfter <= 0 ? 'Paid' : 'Partial';
-                let isMonthly = f.isMonthly !== undefined ? f.isMonthly : true;
 
                 totalDiscount += parseFloat(f.discount) || 0;
 
@@ -1019,7 +1046,7 @@
                     <td style="text-align:right;">₹ ${(parseFloat(f.dueAfter) || 0).toFixed(2)}</td>
                 </tr>`;
 
-                if (f.feeName && (f.feeName.toLowerCase().includes('admission') || f.feeName.toLowerCase().includes('registration') || f.feeName.toLowerCase().includes('exam') || f.feeName.toLowerCase().includes('development'))) {
+                if (f.isOneTime) {
                     oneTimeHtml += rowHtml;
                     oneTimeTotal += parseFloat(f.totalAmount) || 0;
                 } else {
@@ -1038,6 +1065,11 @@
         let advanceAmt = parseFloat(receipt.advanceAmount) || 0;
         let dueAmt = parseFloat(receipt.dueAmount) || 0;
         let monthsPaid = receipt.monthsPaid || 1;
+
+        // Calculate from receipt data
+        let oneTimeTotalFromReceipt = oneTimeTotal;
+        let monthlyTotalFromReceipt = monthlyTotal;
+        let subtotal = oneTimeTotalFromReceipt + monthlyTotalFromReceipt;
 
         let receiptHtml = `<div class="receipt-card">
             <div class="receipt-header">
@@ -1097,9 +1129,17 @@
                             ${monthlyHtml}
                         </tbody>
                         <tfoot>
+                            ${oneTimeTotalFromReceipt > 0 ? `<tr style="background-color: #f8f9fa;">
+                                <th colspan="5" style="text-align:right;">One-Time Fees Total</th>
+                                <th style="text-align:right;">₹ ${oneTimeTotalFromReceipt.toFixed(2)}</th>
+                            </tr>` : ''}
+                            ${monthlyTotalFromReceipt > 0 ? `<tr style="background-color: #f8f9fa;">
+                                <th colspan="5" style="text-align:right;">Monthly Fees Total</th>
+                                <th style="text-align:right;">₹ ${monthlyTotalFromReceipt.toFixed(2)}</th>
+                            </tr>` : ''}
                             <tr style="background-color: #f8f9fa;">
-                                <th colspan="5" style="text-align:right;">Subtotal</th>
-                                <th style="text-align:right;">₹ ${(receipt.totalFee || 0).toFixed(2)}</th>
+                                <th colspan="5" style="text-align:right;"><strong>Subtotal</strong></th>
+                                <th style="text-align:right;"><strong>₹ ${subtotal.toFixed(2)}</strong></th>
                             </tr>
                             ${totalDisc > 0 ? `<tr style="background-color: #f8f9fa;">
                                 <th colspan="5" style="text-align:right;color:green;">Total Discount</th>
@@ -1123,6 +1163,54 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+            </div>
+
+            <!-- Payment Details Summary -->
+            <div class="receipt-divider"></div>
+
+            <div class="row">
+                <div class="col-12">
+                    <h6>Payment Summary:</h6>
+                    <div class="receipt-summary-box">
+                        <div class="row">
+                            <div class="col-6 label">One-Time Fees:</div>
+                            <div class="col-6 value">₹ ${oneTimeTotalFromReceipt.toFixed(2)}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label">Monthly Fees:</div>
+                            <div class="col-6 value">₹ ${monthlyTotalFromReceipt.toFixed(2)}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label">× Months:</div>
+                            <div class="col-6 value">${monthsPaid}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label">Monthly Total (× Months):</div>
+                            <div class="col-6 value">₹ ${(monthlyTotalFromReceipt).toFixed(2)}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label">Remaining Due:</div>
+                            <div class="col-6 value text-warning">₹ ${(receipt.remainingDue || 0).toFixed(2)}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label"><strong>Grand Total:</strong></div>
+                            <div class="col-6 value"><strong>₹ ${(receipt.totalFee || 0).toFixed(2)}</strong></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label text-success">Discount Applied:</div>
+                            <div class="col-6 value text-success">- ₹ ${(receipt.totalDiscount || 0).toFixed(2)}</div>
+                        </div>
+                        <hr />
+                        <div class="row total">
+                            <div class="col-6 label"><strong>Total to Pay:</strong></div>
+                            <div class="col-6 value"><strong>₹ ${totalPaid.toFixed(2)}</strong></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 label text-warning"><strong>Remaining Due After:</strong></div>
+                            <div class="col-6 value text-warning"><strong>₹ ${dueAmt.toFixed(2)}</strong></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

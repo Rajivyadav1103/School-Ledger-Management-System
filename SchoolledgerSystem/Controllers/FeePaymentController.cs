@@ -214,7 +214,9 @@ namespace SchoolledgerSystem.Controllers
             }
         }
 
-        // SAVE BULK PAYMENT
+        // ============================================================
+        // FIXED: SAVE BULK PAYMENT - Saves fee details correctly
+        // ============================================================
         [HttpPost]
         public async Task<IActionResult> SaveBulkPayment([FromBody] BulkPaymentModel model)
         {
@@ -237,13 +239,19 @@ namespace SchoolledgerSystem.Controllers
                 decimal totalPaid = 0;
                 decimal totalDiscountApplied = model.Discount;
 
-                // Get fee details with due amounts for selected fees
-                var feeDetails = new List<SelectedFeeModel>();
+                // Separate one-time and monthly fees
+                string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development", "Annual" };
+
+                var oneTimeFees = new List<SelectedFeeModel>();
+                var monthlyFees = new List<SelectedFeeModel>();
+
                 foreach (var feeId in model.FeeStructureIds)
                 {
                     var fee = model.SelectedFees.FirstOrDefault(x => x.FeeStructureID == feeId);
                     if (fee != null)
                     {
+                        bool isOneTime = oneTimeFeeNames.Any(f => fee.FeeName.Contains(f, StringComparison.OrdinalIgnoreCase));
+
                         var totalPaidSoFar = await _context.FeePayments
                             .Where(x => x.StudentID == model.StudentID && x.FeeStructureID == feeId && !x.IsDeleted)
                             .SumAsync(x => x.PaidAmount);
@@ -251,19 +259,37 @@ namespace SchoolledgerSystem.Controllers
                         var due = fee.Amount - totalPaidSoFar;
                         if (due < 0) due = 0;
 
-                        feeDetails.Add(new SelectedFeeModel
+                        var feeModel = new SelectedFeeModel
                         {
                             FeeStructureID = feeId,
                             FeeName = fee.FeeName,
                             Amount = fee.Amount,
                             DueAmount = due,
-                            AcademicYear = fee.AcademicYear
-                        });
+                            AcademicYear = fee.AcademicYear,
+                            IsOneTime = isOneTime
+                        };
+
+                        if (isOneTime)
+                        {
+                            oneTimeFees.Add(feeModel);
+                        }
+                        else
+                        {
+                            monthlyFees.Add(feeModel);
+                        }
                     }
                 }
 
-                decimal totalDue = feeDetails.Sum(x => x.DueAmount);
-                decimal afterDiscount = totalDue - totalDiscountApplied;
+                // Calculate monthly total (monthly fees × months)
+                decimal monthlyTotal = monthlyFees.Sum(x => x.DueAmount);
+                decimal monthlyTotalWithMonths = monthlyTotal * model.MonthsToPay;
+
+                // One-time fees total (not multiplied)
+                decimal oneTimeTotal = oneTimeFees.Sum(x => x.DueAmount);
+
+                // Grand total
+                decimal grandTotal = monthlyTotalWithMonths + oneTimeTotal;
+                decimal afterDiscount = grandTotal - totalDiscountApplied;
                 if (afterDiscount < 0) afterDiscount = 0;
 
                 // Check if paying more than due (advance)
@@ -271,40 +297,89 @@ namespace SchoolledgerSystem.Controllers
                 decimal advanceAmount = isAdvancePayment ? (model.PaidAmount - afterDiscount) : 0;
                 decimal actualPayment = isAdvancePayment ? afterDiscount : model.PaidAmount;
 
+                // ============================================================
                 // Save regular payments for EACH selected fee
+                // ============================================================
                 decimal remaining = actualPayment;
-                foreach (var fee in feeDetails)
+
+                // Save monthly fees (multiplied by months)
+                if (monthlyFees.Any())
                 {
-                    if (fee.DueAmount > 0 && remaining > 0)
+                    decimal totalMonthlyDue = monthlyFees.Sum(x => x.DueAmount);
+
+                    foreach (var fee in monthlyFees)
                     {
-                        decimal amountToPay = Math.Min(remaining, fee.DueAmount);
-                        if (amountToPay > 0.01m)
+                        if (fee.DueAmount > 0 && remaining > 0)
                         {
-                            // Calculate discount portion for this fee
-                            decimal discountPortion = totalDue > 0 ? (totalDiscountApplied * (amountToPay / totalDue)) : 0;
+                            decimal monthlyDue = fee.DueAmount;
+                            decimal totalAmount = monthlyDue * model.MonthsToPay;
+                            decimal amountToPay = Math.Min(remaining, totalAmount);
 
-                            var payment = new FeePayment
+                            if (amountToPay > 0.01m)
                             {
-                                StudentID = model.StudentID,
-                                FeeStructureID = fee.FeeStructureID,
-                                TotalAmount = fee.Amount,
-                                PaidAmount = amountToPay,
-                                DueAmount = fee.DueAmount - amountToPay,
-                                Discount = discountPortion,
-                                Fine = 0,
-                                NetAmount = amountToPay,
-                                InvoiceNo = invoiceNo,
-                                PaymentMethod = model.PaymentMethod,
-                                PaymentDate = model.PaymentDate,
-                                AcademicYear = fee.AcademicYear,
-                                PaymentStatus = (fee.DueAmount - amountToPay) <= 0 ? "Paid" : "Partial",
-                                IsDeleted = false,
-                                CreatedDate = DateTime.Now
-                            };
+                                decimal discountPortion = totalMonthlyDue > 0 ?
+                                    (totalDiscountApplied * (fee.DueAmount / totalMonthlyDue)) : 0;
 
-                            payments.Add(payment);
-                            remaining -= amountToPay;
-                            totalPaid += amountToPay;
+                                var payment = new FeePayment
+                                {
+                                    StudentID = model.StudentID,
+                                    FeeStructureID = fee.FeeStructureID,
+                                    TotalAmount = totalAmount,
+                                    PaidAmount = amountToPay,
+                                    DueAmount = totalAmount - amountToPay,
+                                    Discount = discountPortion,
+                                    Fine = 0,
+                                    NetAmount = amountToPay,
+                                    InvoiceNo = invoiceNo,
+                                    PaymentMethod = model.PaymentMethod,
+                                    PaymentDate = model.PaymentDate,
+                                    AcademicYear = fee.AcademicYear,
+                                    PaymentStatus = (totalAmount - amountToPay) <= 0 ? "Paid" : "Partial",
+                                    IsDeleted = false,
+                                    CreatedDate = DateTime.Now
+                                };
+
+                                payments.Add(payment);
+                                remaining -= amountToPay;
+                                totalPaid += amountToPay;
+                            }
+                        }
+                    }
+                }
+
+                // Save one-time fees (not multiplied)
+                if (oneTimeFees.Any())
+                {
+                    foreach (var fee in oneTimeFees)
+                    {
+                        if (fee.DueAmount > 0 && remaining > 0)
+                        {
+                            decimal amountToPay = Math.Min(remaining, fee.DueAmount);
+                            if (amountToPay > 0.01m)
+                            {
+                                var payment = new FeePayment
+                                {
+                                    StudentID = model.StudentID,
+                                    FeeStructureID = fee.FeeStructureID,
+                                    TotalAmount = fee.Amount,
+                                    PaidAmount = amountToPay,
+                                    DueAmount = fee.DueAmount - amountToPay,
+                                    Discount = 0,
+                                    Fine = 0,
+                                    NetAmount = amountToPay,
+                                    InvoiceNo = invoiceNo,
+                                    PaymentMethod = model.PaymentMethod,
+                                    PaymentDate = model.PaymentDate,
+                                    AcademicYear = fee.AcademicYear,
+                                    PaymentStatus = (fee.DueAmount - amountToPay) <= 0 ? "Paid" : "Partial",
+                                    IsDeleted = false,
+                                    CreatedDate = DateTime.Now
+                                };
+
+                                payments.Add(payment);
+                                remaining -= amountToPay;
+                                totalPaid += amountToPay;
+                            }
                         }
                     }
                 }
@@ -352,8 +427,11 @@ namespace SchoolledgerSystem.Controllers
                     advanceAmount = advanceAmount,
                     dueAfter = afterDiscount - actualPayment,
                     totalPayments = payments.Count,
-                    paymentCount = payments.Count(x => x.FeeStructureID != null),
-                    discountApplied = totalDiscountApplied
+                    discountApplied = totalDiscountApplied,
+                    oneTimeTotal = oneTimeTotal,
+                    monthlyTotal = monthlyTotal,
+                    monthlyTotalWithMonths = monthlyTotalWithMonths,
+                    monthsPaid = model.MonthsToPay
                 });
             }
             catch (DbUpdateException ex)
@@ -439,7 +517,7 @@ namespace SchoolledgerSystem.Controllers
         }
 
         // ============================================================
-        // FIXED: GET RECEIPT BY INVOICE - No duplicate variable names
+        // FIXED: GET RECEIPT BY INVOICE - Properly loads FeeStructure and FeeType
         // ============================================================
         [HttpGet]
         public async Task<IActionResult> GetReceiptByInvoice(string invoiceNo)
@@ -451,7 +529,7 @@ namespace SchoolledgerSystem.Controllers
                     .Include(x => x.Student)
                         .ThenInclude(s => s.ClassType)
                     .Include(x => x.FeeStructure)
-                        .ThenInclude(f => f.FeeType)
+                        .ThenInclude(f => f.FeeType) // CRITICAL: Load FeeType to get FeeName
                     .Where(x => x.InvoiceNo == invoiceNo && !x.IsDeleted)
                     .ToListAsync();
 
@@ -469,7 +547,7 @@ namespace SchoolledgerSystem.Controllers
                 var totalPaidAmount = regularPayments.Sum(x => x.PaidAmount);
                 var totalDiscountAmount = regularPayments.Sum(x => x.Discount);
                 var advanceAmount = advancePayments.Sum(x => x.PaidAmount);
-                var totalDue = totalFeeAmount - totalPaidAmount;
+                var totalDue = totalFeeAmount - totalPaidAmount - advanceAmount;
                 if (totalDue < 0) totalDue = 0;
 
                 // Calculate months paid
@@ -485,18 +563,22 @@ namespace SchoolledgerSystem.Controllers
 
                 var nepaliDate = GetNepaliDateString(firstPayment.PaymentDate);
 
-                // Group fees by FeeStructureID to combine multiple months
+                // ============================================================
+                // Build fee details from regular payments
+                // ============================================================
                 var feeDetailsList = new List<object>();
-                var groupedFees = regularPayments.GroupBy(x => x.FeeStructureID);
 
-                foreach (var group in groupedFees)
+                foreach (var payment in regularPayments)
                 {
-                    var first = group.First();
-                    var feeName = first.FeeStructure?.FeeType?.FeeName ?? "Unknown Fee";
+                    string feeName = "Unknown Fee";
+                    if (payment.FeeStructure != null && payment.FeeStructure.FeeType != null)
+                    {
+                        feeName = payment.FeeStructure.FeeType.FeeName;
+                    }
 
                     // Determine if this is a one-time fee
                     bool isOneTime = false;
-                    string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development" };
+                    string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development", "Annual" };
                     foreach (var name in oneTimeFeeNames)
                     {
                         if (feeName.Contains(name, StringComparison.OrdinalIgnoreCase))
@@ -506,24 +588,55 @@ namespace SchoolledgerSystem.Controllers
                         }
                     }
 
-                    var totalAmount = group.Sum(x => x.TotalAmount);
-                    var totalPaid = group.Sum(x => x.PaidAmount);
-                    var totalDiscount = group.Sum(x => x.Discount);
-                    var totalDueAfter = group.Sum(x => x.DueAmount);
-                    var count = group.Count();
-
                     feeDetailsList.Add(new
                     {
                         FeeName = feeName,
-                        TotalAmount = totalAmount,
-                        PaidAmount = totalPaid,
-                        Discount = totalDiscount,
-                        Month = isOneTime ? "One-Time" : $"{count} months",
-                        Status = totalDueAfter <= 0 ? "Paid" : "Partial",
-                        DueAfter = totalDueAfter,
+                        TotalAmount = payment.TotalAmount,
+                        PaidAmount = payment.PaidAmount,
+                        Discount = payment.Discount,
+                        Month = isOneTime ? "One-Time" : $"{monthsPaid} months",
+                        Status = payment.PaymentStatus,
+                        DueAfter = payment.DueAmount,
                         IsOneTime = isOneTime,
-                        Count = count,
-                        MonthlyAmount = isOneTime ? totalAmount : (totalAmount / count)
+                        Count = monthsPaid
+                    });
+                }
+
+                // Group fees by FeeStructureID to combine multiple months (if needed)
+                var groupedFeeDetails = new List<object>();
+                var grouped = regularPayments.GroupBy(x => x.FeeStructureID);
+
+                foreach (var group in grouped)
+                {
+                    var first = group.First();
+                    string feeName = "Unknown Fee";
+                    if (first.FeeStructure != null && first.FeeStructure.FeeType != null)
+                    {
+                        feeName = first.FeeStructure.FeeType.FeeName;
+                    }
+
+                    bool isOneTime = false;
+                    string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development", "Annual" };
+                    foreach (var name in oneTimeFeeNames)
+                    {
+                        if (feeName.Contains(name, StringComparison.OrdinalIgnoreCase))
+                        {
+                            isOneTime = true;
+                            break;
+                        }
+                    }
+
+                    groupedFeeDetails.Add(new
+                    {
+                        FeeName = feeName,
+                        TotalAmount = group.Sum(x => x.TotalAmount),
+                        PaidAmount = group.Sum(x => x.PaidAmount),
+                        Discount = group.Sum(x => x.Discount),
+                        Month = isOneTime ? "One-Time" : $"{group.Count()} months",
+                        Status = group.Sum(x => x.DueAmount) <= 0 ? "Paid" : "Partial",
+                        DueAfter = group.Sum(x => x.DueAmount),
+                        IsOneTime = isOneTime,
+                        Count = group.Count()
                     });
                 }
 
@@ -550,8 +663,8 @@ namespace SchoolledgerSystem.Controllers
                     PaymentType = advanceAmount > 0 ? "Advance" : "Normal",
                     IsFullPaid = totalDue <= 0,
 
-                    // Fee Details - Grouped
-                    FeeDetails = feeDetailsList
+                    // Use grouped fee details
+                    FeeDetails = groupedFeeDetails.Any() ? groupedFeeDetails : feeDetailsList
                 };
 
                 return Json(receipt);
@@ -678,6 +791,7 @@ namespace SchoolledgerSystem.Controllers
         public decimal Amount { get; set; }
         public decimal DueAmount { get; set; }
         public string AcademicYear { get; set; }
+        public bool IsOneTime { get; set; }
     }
 
     public class EditPaymentModel
