@@ -250,7 +250,8 @@ namespace SchoolledgerSystem.Controllers
                     var fee = model.SelectedFees.FirstOrDefault(x => x.FeeStructureID == feeId);
                     if (fee != null)
                     {
-                        bool isOneTime = oneTimeFeeNames.Any(f => fee.FeeName.Contains(f, StringComparison.OrdinalIgnoreCase));
+                        bool isOneTime = string.Equals(fee.FeeType, "one-time", StringComparison.OrdinalIgnoreCase)
+                            || oneTimeFeeNames.Any(f => fee.FeeName.Contains(f, StringComparison.OrdinalIgnoreCase));
 
                         var totalPaidSoFar = await _context.FeePayments
                             .Where(x => x.StudentID == model.StudentID && x.FeeStructureID == feeId && !x.IsDeleted)
@@ -258,6 +259,10 @@ namespace SchoolledgerSystem.Controllers
 
                         var due = fee.Amount - totalPaidSoFar;
                         if (due < 0) due = 0;
+                        if (!isOneTime && due <= 0)
+                        {
+                            due = fee.Amount;
+                        }
 
                         var feeModel = new SelectedFeeModel
                         {
@@ -550,18 +555,8 @@ namespace SchoolledgerSystem.Controllers
                 var totalDue = totalFeeAmount - totalPaidAmount - advanceAmount;
                 if (totalDue < 0) totalDue = 0;
 
-                // Calculate months paid
-                int monthsPaid = 1;
-                if (regularPayments.Any())
-                {
-                    var groupedByFee = regularPayments.GroupBy(x => x.FeeStructureID);
-                    if (groupedByFee.Any())
-                    {
-                        monthsPaid = groupedByFee.First().Count();
-                    }
-                }
-
                 var nepaliDate = GetNepaliDateString(firstPayment.PaymentDate);
+                string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development", "Annual" };
 
                 // ============================================================
                 // Build fee details from regular payments
@@ -576,16 +571,11 @@ namespace SchoolledgerSystem.Controllers
                         feeName = payment.FeeStructure.FeeType.FeeName;
                     }
 
-                    // Determine if this is a one-time fee
-                    bool isOneTime = false;
-                    string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development", "Annual" };
-                    foreach (var name in oneTimeFeeNames)
+                    bool isOneTime = oneTimeFeeNames.Any(name => feeName.Contains(name, StringComparison.OrdinalIgnoreCase));
+                    int feeMonths = 1;
+                    if (!isOneTime && payment.FeeStructure?.Amount > 0)
                     {
-                        if (feeName.Contains(name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            isOneTime = true;
-                            break;
-                        }
+                        feeMonths = Math.Max(1, (int)Math.Round(payment.TotalAmount / payment.FeeStructure.Amount, MidpointRounding.AwayFromZero));
                     }
 
                     feeDetailsList.Add(new
@@ -594,11 +584,11 @@ namespace SchoolledgerSystem.Controllers
                         TotalAmount = payment.TotalAmount,
                         PaidAmount = payment.PaidAmount,
                         Discount = payment.Discount,
-                        Month = isOneTime ? "One-Time" : $"{monthsPaid} months",
+                        Month = isOneTime ? "One-Time" : $"{feeMonths} month{(feeMonths == 1 ? "" : "s")}",
                         Status = payment.PaymentStatus,
                         DueAfter = payment.DueAmount,
                         IsOneTime = isOneTime,
-                        Count = monthsPaid
+                        Count = feeMonths
                     });
                 }
 
@@ -615,15 +605,11 @@ namespace SchoolledgerSystem.Controllers
                         feeName = first.FeeStructure.FeeType.FeeName;
                     }
 
-                    bool isOneTime = false;
-                    string[] oneTimeFeeNames = { "Admission", "Registration", "Exam", "Development", "Annual" };
-                    foreach (var name in oneTimeFeeNames)
+                    bool isOneTime = oneTimeFeeNames.Any(name => feeName.Contains(name, StringComparison.OrdinalIgnoreCase));
+                    int feeMonths = group.Count();
+                    if (!isOneTime && first.FeeStructure?.Amount > 0)
                     {
-                        if (feeName.Contains(name, StringComparison.OrdinalIgnoreCase))
-                        {
-                            isOneTime = true;
-                            break;
-                        }
+                        feeMonths = Math.Max(1, (int)Math.Round(group.Sum(x => x.TotalAmount) / first.FeeStructure.Amount, MidpointRounding.AwayFromZero));
                     }
 
                     groupedFeeDetails.Add(new
@@ -632,13 +618,19 @@ namespace SchoolledgerSystem.Controllers
                         TotalAmount = group.Sum(x => x.TotalAmount),
                         PaidAmount = group.Sum(x => x.PaidAmount),
                         Discount = group.Sum(x => x.Discount),
-                        Month = isOneTime ? "One-Time" : $"{group.Count()} months",
+                        Month = isOneTime ? "One-Time" : $"{feeMonths} month{(feeMonths == 1 ? "" : "s")}",
                         Status = group.Sum(x => x.DueAmount) <= 0 ? "Paid" : "Partial",
                         DueAfter = group.Sum(x => x.DueAmount),
                         IsOneTime = isOneTime,
-                        Count = group.Count()
+                        Count = feeMonths
                     });
                 }
+
+                int monthsPaid = groupedFeeDetails
+                    .Where(x => !(bool)x.GetType().GetProperty("IsOneTime")!.GetValue(x)!)
+                    .Select(x => (int)x.GetType().GetProperty("Count")!.GetValue(x)!)
+                    .DefaultIfEmpty(1)
+                    .Max();
 
                 var receipt = new
                 {
@@ -791,6 +783,7 @@ namespace SchoolledgerSystem.Controllers
         public decimal Amount { get; set; }
         public decimal DueAmount { get; set; }
         public string AcademicYear { get; set; }
+        public string FeeType { get; set; } = string.Empty;
         public bool IsOneTime { get; set; }
     }
 

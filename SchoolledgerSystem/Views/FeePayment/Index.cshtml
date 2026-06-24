@@ -1039,6 +1039,7 @@
 
                 let rowHtml = `<tr>
                     <td>${escapeHtml(f.feeName) || 'N/A'}</td>
+                    <td style="text-align:center;">${escapeHtml(f.month) || (f.isOneTime ? 'One-Time' : 'Monthly')}</td>
                     <td style="text-align:right;">₹ ${(parseFloat(f.totalAmount) || 0).toFixed(2)}</td>
                     <td style="text-align:right;">₹ ${(parseFloat(f.paidAmount) || 0).toFixed(2)}</td>
                     <td style="text-align:right;">${(parseFloat(f.discount) || 0) > 0 ? '₹ ' + parseFloat(f.discount).toFixed(2) : '-'}</td>
@@ -1055,7 +1056,7 @@
                 }
             });
         } else {
-            let noDataRow = `<tr><td colspan="6" style="text-align:center;color:#999;">No fee details available</td></tr>`;
+            let noDataRow = `<tr><td colspan="7" style="text-align:center;color:#999;">No fee details available</td></tr>`;
             oneTimeHtml = noDataRow;
             monthlyHtml = '';
         }
@@ -1115,6 +1116,7 @@
                         <thead>
                             <tr>
                                 <th>Fee Name</th>
+                                <th style="text-align:center;">Period</th>
                                 <th style="text-align:right;">Amount</th>
                                 <th style="text-align:right;">Paid</th>
                                 <th style="text-align:right;">Discount</th>
@@ -1123,38 +1125,38 @@
                             </tr>
                         </thead>
                         <tbody>
-                            ${oneTimeHtml ? `<tr class="section-header"><td colspan="6" style="text-align:center;background-color:#d1ecf1;">📌 One-Time Fees</td></tr>` : ''}
+                            ${oneTimeHtml ? `<tr class="section-header"><td colspan="7" style="text-align:center;background-color:#d1ecf1;">📌 One-Time Fees</td></tr>` : ''}
                             ${oneTimeHtml}
-                            ${monthlyHtml ? `<tr class="section-header"><td colspan="6" style="text-align:center;background-color:#d4edda;">📅 Monthly Fees (× ${monthsPaid} months)</td></tr>` : ''}
+                            ${monthlyHtml ? `<tr class="section-header"><td colspan="7" style="text-align:center;background-color:#d4edda;">📅 Monthly Fees (× ${monthsPaid} months)</td></tr>` : ''}
                             ${monthlyHtml}
                         </tbody>
                         <tfoot>
                             ${oneTimeTotalFromReceipt > 0 ? `<tr style="background-color: #f8f9fa;">
-                                <th colspan="5" style="text-align:right;">One-Time Fees Total</th>
+                                <th colspan="6" style="text-align:right;">One-Time Fees Total</th>
                                 <th style="text-align:right;">₹ ${oneTimeTotalFromReceipt.toFixed(2)}</th>
                             </tr>` : ''}
                             ${monthlyTotalFromReceipt > 0 ? `<tr style="background-color: #f8f9fa;">
-                                <th colspan="5" style="text-align:right;">Monthly Fees Total</th>
+                                <th colspan="6" style="text-align:right;">Monthly Fees Total</th>
                                 <th style="text-align:right;">₹ ${monthlyTotalFromReceipt.toFixed(2)}</th>
                             </tr>` : ''}
                             <tr style="background-color: #f8f9fa;">
-                                <th colspan="5" style="text-align:right;"><strong>Subtotal</strong></th>
+                                <th colspan="6" style="text-align:right;"><strong>Subtotal</strong></th>
                                 <th style="text-align:right;"><strong>₹ ${subtotal.toFixed(2)}</strong></th>
                             </tr>
                             ${totalDisc > 0 ? `<tr style="background-color: #f8f9fa;">
-                                <th colspan="5" style="text-align:right;color:green;">Total Discount</th>
+                                <th colspan="6" style="text-align:right;color:green;">Total Discount</th>
                                 <th style="text-align:right;color:green;">- ₹ ${totalDisc.toFixed(2)}</th>
                             </tr>` : ''}
                             ${advanceAmt > 0 ? `<tr style="background-color: #e3f2fd;">
-                                <th colspan="5" style="text-align:right;color:#17a2b8;">Advance Payment</th>
+                                <th colspan="6" style="text-align:right;color:#17a2b8;">Advance Payment</th>
                                 <th style="text-align:right;color:#17a2b8;">₹ ${advanceAmt.toFixed(2)}</th>
                             </tr>` : ''}
                             <tr style="background-color: #e8f5e9;">
-                                <th colspan="5" style="text-align:right;"><strong>Total Paid</strong></th>
+                                <th colspan="6" style="text-align:right;"><strong>Total Paid</strong></th>
                                 <th style="text-align:right;"><strong>₹ ${totalPaid.toFixed(2)}</strong></th>
                             </tr>
                             <tr style="background-color: ${dueAmt <= 0 ? '#d4edda' : '#f8d7da'};">
-                                <th colspan="5" style="text-align:right;${dueAmt <= 0 ? 'color:green;' : 'color:red;'}">
+                                <th colspan="6" style="text-align:right;${dueAmt <= 0 ? 'color:green;' : 'color:red;'}">
                                     ${dueAmt <= 0 ? '✅ Fully Paid' : '⚠️ Remaining Due'}
                                 </th>
                                 <th style="text-align:right;${dueAmt <= 0 ? 'color:green;' : 'color:red;'}">
